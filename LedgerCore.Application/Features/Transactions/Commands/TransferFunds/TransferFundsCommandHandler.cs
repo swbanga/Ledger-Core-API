@@ -1,6 +1,9 @@
+using System;
+using System.Threading.Tasks;
 using LedgerCore.Application.Data;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
+using LedgerCore.Domain.ValueObjects;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,36 +39,32 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
         if (destinationAccount is null)
             throw new Exception($"Destination account {request.DestinationAccountId} not found.");
 
-        var transaction = new LedgerTransaction
-        {
-            Type = TransactionType.PeerToPeer,
-            Status = TransactionStatus.Pending,
-            SourceAccountId = request.SourceAccountId,
-            DestinationAccountId = request.DestinationAccountId,
-            Amount = request.Amount,
-            Currency = request.Currency
-        };
+        var transactionId = Guid.NewGuid();
 
-        var debitEntry = new LedgerEntry
-        {
-            AccountId = request.SourceAccountId,
-            Direction = EntryDirection.Debit,
-            Amount = request.Amount,
-            Currency = request.Currency,
-            TransactionId = transaction.Id
-        };
+        var debitEntry = new LedgerEntry(
+            Guid.NewGuid(),
+            transactionId,
+            request.SourceAccountId,
+            request.Amount,
+            EntryDirection.Debit);
 
-        var creditEntry = new LedgerEntry
-        {
-            AccountId = request.DestinationAccountId,
-            Direction = EntryDirection.Credit,
-            Amount = request.Amount,
-            Currency = request.Currency,
-            TransactionId = transaction.Id
-        };
+        var creditEntry = new LedgerEntry(
+            Guid.NewGuid(),
+            transactionId,
+            request.DestinationAccountId,
+            request.Amount,
+            EntryDirection.Credit);
 
-        transaction.Entries.Add(debitEntry);
-        transaction.Entries.Add(creditEntry);
+        var entries = new[] { debitEntry, creditEntry };
+
+        var transaction = new LedgerTransaction(
+            Guid.NewGuid(),
+            $"REF-{Guid.NewGuid():N}",
+            TransactionType.PeerToPeer,
+            new CurrencyCode(request.Currency),
+            _timeProvider.GetUtcNow(),
+            entries,
+            new AuditMetadata(Guid.Empty, "127.0.0.1", "Web"));
 
         transaction.Post(_timeProvider);
 
