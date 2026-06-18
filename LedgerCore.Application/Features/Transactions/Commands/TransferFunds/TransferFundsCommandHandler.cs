@@ -64,7 +64,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             new CurrencyCode(request.Currency),
             _timeProvider.GetUtcNow(),
             entries,
-            new AuditMetadata(Guid.Empty, "127.0.0.1", "Web"));
+            new AuditMetadata(Guid.Empty, "127.0.0.1", Channel.Web));
 
         transaction.Post(_timeProvider);
 
