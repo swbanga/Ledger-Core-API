@@ -18,7 +18,13 @@ public sealed class LedgerTransaction
     public IReadOnlyCollection<LedgerEntry> Entries { get; private set; }
     public AuditMetadata AuditMeta { get; private set; }
 
-    private LedgerTransaction() { } // EF Core constructor
+    private LedgerTransaction()
+    {
+        ReferenceCode = null!;
+        Currency = null!;
+        Entries = null!;
+        AuditMeta = null!;
+    } // EF Core constructor
 
     public LedgerTransaction(
         Guid id,
