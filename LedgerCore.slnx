@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="LedgerCore.Api/LedgerCore.Api.csproj" />
+  <Project Path="LedgerCore.Application/LedgerCore.Application.csproj" />
+  <Project Path="LedgerCore.Domain/LedgerCore.Domain.csproj" />
+  <Project Path="LedgerCore.Infrastructure/LedgerCore.Infrastructure.csproj" />
+</Solution>
