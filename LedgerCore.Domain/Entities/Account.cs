@@ -12,7 +12,11 @@ public sealed class Account
     public KycTier KycTier { get; private set; }
     public byte[] RowVersion { get; private set; }
 
-    private Account() { } // EF Core constructor
+    private Account()
+    {
+        AccountNumber = null!;
+        RowVersion = Array.Empty<byte>();
+    }
 
     public Account(Guid id, AccountNumber accountNumber, AccountType accountType, KycTier kycTier)
     {
