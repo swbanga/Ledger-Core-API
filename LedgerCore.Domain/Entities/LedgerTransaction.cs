@@ -62,19 +62,15 @@ public sealed class LedgerTransaction
         if (timeProvider == null)
             throw new ArgumentNullException(nameof(timeProvider));
 
-        decimal sum = 0m;
-
-        foreach (var entry in Entries)
-        {
-            if (entry.Direction == EntryDirection.Credit)
-                sum += entry.Amount;
-            else if (entry.Direction == EntryDirection.Debit)
-                sum -= entry.Amount;
-        }
+        // Master Blueprint Rule 2: Balanced transaction: SUM(Entries) = 0
+        // We enforce strict Signed Number mathematics. No dynamic sign flipping.
+        var sum = Entries.Sum(e => e.Amount);
 
         if (sum != 0m)
+        {
             throw new DomainInvariantViolationException(
                 $"Transaction {Id} cannot be posted because the sum of its entries ({sum}) is not zero.");
+        }
 
         Status = TransactionStatus.Posted;
     }

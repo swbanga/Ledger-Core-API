@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using LedgerCore.Application.Features.Accounts.Commands.CreateAccount;
+using LedgerCore.Application.Features.Accounts.Queries.GetAccountBalance;
 
 namespace LedgerCore.Api.Controllers;
 
@@ -24,5 +25,19 @@ public sealed class AccountsController : ControllerBase
     {
         var accountId = await _sender.Send(command);
         return Ok(new { AccountId = accountId });
+    }
+
+    [HttpGet("{id:guid}/balance")]
+    [Authorize(Roles = "SysAdmin,Agent,User")]
+    public async Task<IActionResult> GetBalance(Guid id)
+    {
+        var query = new GetAccountBalanceQuery(id);
+        var balance = await _sender.Send(query);
+        
+        return Ok(new 
+        { 
+            AccountId = id, 
+            CalculatedBalance = balance 
+        });
     }
 }

@@ -5,35 +5,38 @@ using MediatR;
 using LedgerCore.Application.Data;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.ValueObjects;
+using LedgerCore.Domain.Enums;
 
 namespace LedgerCore.Application.Features.Accounts.Commands.CreateAccount;
 
 public sealed class CreateAccountCommandHandler : IRequestHandler<CreateAccountCommand, Guid>
 {
     private readonly IApplicationDbContext _context;
-    private readonly TimeProvider _timeProvider;
 
-    public CreateAccountCommandHandler(IApplicationDbContext context, TimeProvider timeProvider)
+    public CreateAccountCommandHandler(IApplicationDbContext context)
     {
         _context = context;
-        _timeProvider = timeProvider;
     }
 
     public async Task<Guid> Handle(CreateAccountCommand request, CancellationToken cancellationToken)
     {
-        // Generate a pseudo-random 10-digit account number starting with 0
+        // 1. Generate the deterministic Account Number
         var random = new Random();
         string generatedNumber = "0" + random.Next(100000000, 999999999).ToString();
 
-        var account = new Account
-        {
-            Id = Guid.NewGuid(),
-            AccountNumber = new AccountNumber(generatedNumber),
-            // In a production system, these strings would be strictly validated Enums.
-            AccountType = request.AccountType,
-            KycTier = request.KycTier
-        };
+        // 2. Parse the API strings into Strict Domain Enums
+        var parsedType = Enum.Parse<AccountType>(request.AccountType, ignoreCase: true);
+        var parsedTier = Enum.Parse<KycTier>(request.KycTier, ignoreCase: true);
 
+        // 3. Instantiate via the immutable DDD constructor
+        var account = new Account(
+            Guid.NewGuid(),
+            new AccountNumber(generatedNumber),
+            parsedType,
+            parsedTier
+        );
+
+        // 4. Commit to the Azure SQL Edge container
         _context.Accounts.Add(account);
         await _context.SaveChangesAsync(cancellationToken);
 

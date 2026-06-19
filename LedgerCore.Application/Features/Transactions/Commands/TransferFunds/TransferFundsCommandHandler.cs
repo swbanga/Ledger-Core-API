@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using LedgerCore.Application.Data;
 using LedgerCore.Domain.Entities;
@@ -39,15 +41,29 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
         if (destinationAccount is null)
             throw new Exception($"Destination account {request.DestinationAccountId} not found.");
 
+        // --- NEW ENFORCEMENT: THE OVERDRAFT DEFENSE SHIELD ---
+        var currentBalance = await _context.LedgerEntries
+            .Where(e => e.AccountId == request.SourceAccountId)
+            .SumAsync(e => e.Amount, cancellationToken);
+
+        if (currentBalance < request.Amount)
+        {
+            throw new Exception(
+                $"FATAL: Insufficient funds. Account {request.SourceAccountId} holds {currentBalance}, but attempted to transfer {request.Amount}.");
+        }
+        // -----------------------------------------------------
+
         var transactionId = Guid.NewGuid();
 
+        // 1. Enforce the Negative Debit
         var debitEntry = new LedgerEntry(
             Guid.NewGuid(),
             transactionId,
             request.SourceAccountId,
-            request.Amount,
+            -request.Amount, 
             EntryDirection.Debit);
 
+        // 2. Maintain the Positive Credit
         var creditEntry = new LedgerEntry(
             Guid.NewGuid(),
             transactionId,
@@ -57,8 +73,14 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
 
         var entries = new[] { debitEntry, creditEntry };
 
+        // 3. The Absolute Mathematical Lock
+        if (entries.Sum(e => e.Amount) != 0)
+        {
+            throw new InvalidOperationException("FATAL: Transaction entries do not balance to absolute zero.");
+        }
+
         var transaction = new LedgerTransaction(
-            Guid.NewGuid(),
+            transactionId,
             $"REF-{Guid.NewGuid():N}",
             TransactionType.PeerToPeer,
             new CurrencyCode(request.Currency),
