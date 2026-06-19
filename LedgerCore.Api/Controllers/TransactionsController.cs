@@ -1,11 +1,13 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using LedgerCore.Application.Features.Transactions.Commands.TransferFunds;
 
 namespace LedgerCore.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class TransactionsController : ControllerBase
 {
     private readonly ISender _sender;
