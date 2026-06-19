@@ -49,6 +49,7 @@ public sealed class OutboxProcessorJob : BackgroundService
 
         var messages = await dbContext.OutboxMessages
             .Where(m => m.ProcessedOn == null)
+            .OrderBy(m => m.OccurredOn) // Enforces absolute FIFO chronological execution
             .Take(20)
             .ToListAsync(cancellationToken);
 
