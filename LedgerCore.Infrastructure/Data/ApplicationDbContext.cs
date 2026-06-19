@@ -21,7 +21,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
         base.OnModelCreating(builder);
 
         // --- THE OUTBOX ORM WELD ---
-        builder.Entity<LedgerCore.Infrastructure.Outbox.OutboxMessage>(b =>
+        builder.Entity<OutboxMessage>(b =>
         {
             b.ToTable("OutboxMessages");
             b.HasKey(x => x.Id);
