@@ -13,4 +13,11 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
     public DbSet<Account> Accounts { get; set; }
     public DbSet<LedgerTransaction> LedgerTransactions { get; set; }
     public DbSet<LedgerEntry> LedgerEntries { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+        
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(LedgerDbContext).Assembly);
+    }
 }

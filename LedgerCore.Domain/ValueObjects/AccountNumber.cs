@@ -18,5 +18,8 @@ public sealed record AccountNumber
         Value = value;
     }
 
+    // Explicit bypass for Entity Framework Core hydration engine
+    private AccountNumber() { Value = null!; }
+
     public static implicit operator string(AccountNumber number) => number?.Value ?? string.Empty;
 }
