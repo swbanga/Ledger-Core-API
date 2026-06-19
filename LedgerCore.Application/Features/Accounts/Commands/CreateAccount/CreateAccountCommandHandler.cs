@@ -20,21 +20,22 @@ public sealed class CreateAccountCommandHandler : IRequestHandler<CreateAccountC
 
     public async Task<Guid> Handle(CreateAccountCommand request, CancellationToken cancellationToken)
     {
-        // 1. Generate the deterministic Account Number
-        var random = new Random();
-        string generatedNumber = "0" + random.Next(100000000, 999999999).ToString();
+        // 1. Route the raw string through the correct mathematically validated factory gate
+        var validatedAccountNumber = request.AccountType switch
+        {
+            LedgerCore.Domain.Enums.AccountType.User => LedgerCore.Domain.ValueObjects.AccountNumber.CreateUserAccount(request.AccountNumber),
+            LedgerCore.Domain.Enums.AccountType.AgentFloat or LedgerCore.Domain.Enums.AccountType.Merchant => LedgerCore.Domain.ValueObjects.AccountNumber.CreateAgentOrMerchantAccount(request.AccountNumber),
+            _ => LedgerCore.Domain.ValueObjects.AccountNumber.CreateSystemAccount(request.AccountNumber)
+        };
 
-        // 2. Parse the API strings into Strict Domain Enums
-        var parsedType = Enum.Parse<AccountType>(request.AccountType, ignoreCase: true);
-        var parsedTier = Enum.Parse<KycTier>(request.KycTier, ignoreCase: true);
-
-        // 3. Instantiate via the immutable DDD constructor
-        var account = new Account(
-            Guid.NewGuid(),
-            new AccountNumber(generatedNumber),
-            parsedType,
-            parsedTier
-        );
+        // 2. Initialize the entity using object initializer syntax, bypassing deleted constructors
+        var account = new LedgerCore.Domain.Entities.Account
+        {
+            Id = Guid.NewGuid(), // Use request.Id if your command requires a predefined Id
+            AccountNumber = validatedAccountNumber,
+            AccountType = request.AccountType,
+            KycTier = request.KycTier
+        };
 
         // 4. Commit to the Azure SQL Edge container
         _context.Accounts.Add(account);
