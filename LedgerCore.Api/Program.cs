@@ -1,3 +1,8 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using LedgerCore.Infrastructure.Authentication;
+using LedgerCore.Application.Authentication;
 using LedgerCore.Application;
 using LedgerCore.Infrastructure;
 
@@ -9,6 +14,27 @@ builder.Services.AddOpenApi();
 builder.Services.AddControllers();
 builder.Services.AddSingleton(TimeProvider.System);
 
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
+builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!))
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 builder.Services.AddApplication();
 
 // Infrastructure
@@ -17,6 +43,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 var app = builder.Build();
 
 app.MapControllers();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
