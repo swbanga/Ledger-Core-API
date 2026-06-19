@@ -1,7 +1,8 @@
-using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using LedgerCore.Application.Data;
+using LedgerCore.Infrastructure.Database;
 
 namespace LedgerCore.Infrastructure;
 
