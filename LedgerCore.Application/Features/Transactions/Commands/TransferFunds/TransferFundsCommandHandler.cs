@@ -48,7 +48,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
 
         if (currentBalance < request.Amount)
         {
-            throw new Exception(
+            throw new LedgerCore.Domain.Exceptions.InsufficientFundsException(
                 $"FATAL: Insufficient funds. Account {request.SourceAccountId} holds {currentBalance}, but attempted to transfer {request.Amount}.");
         }
         // -----------------------------------------------------

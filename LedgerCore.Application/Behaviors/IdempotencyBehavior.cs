@@ -25,7 +25,7 @@ public class IdempotencyBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
     {
         if (await _idempotencyService.RequestExistsAsync(request.IdempotencyKey))
         {
-            throw new Exception($"Idempotency check failed. Command {request.IdempotencyKey} has already been processed.");
+            throw new LedgerCore.Application.Exceptions.IdempotencyException($"Idempotency check failed. Command {request.IdempotencyKey} has already been processed.");
         }
 
         await _idempotencyService.CreateRequestAsync(request.IdempotencyKey, typeof(TRequest).Name);
