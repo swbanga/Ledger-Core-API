@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using LedgerCore.Infrastructure.Authentication;
 using LedgerCore.Application.Authentication;
+using LedgerCore.Application.Interfaces;
+using LedgerCore.Infrastructure.Idempotency;
 using LedgerCore.Application;
 using LedgerCore.Infrastructure;
 
@@ -16,6 +18,12 @@ builder.Services.AddSingleton(TimeProvider.System);
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.AddSingleton<IJwtProvider, JwtProvider>();
+
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = "localhost:6379";
+});
+builder.Services.AddTransient<IIdempotencyService, RedisIdempotencyService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
