@@ -4,6 +4,7 @@ using System.Linq;
 using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.Exceptions;
 using LedgerCore.Domain.ValueObjects;
+using LedgerCore.Domain.Events;
 
 namespace LedgerCore.Domain.Entities;
 
@@ -17,6 +18,11 @@ public sealed class LedgerTransaction
     public DateTimeOffset CreatedAt { get; private set; }
     public IReadOnlyCollection<LedgerEntry> Entries { get; private set; }
     public AuditMetadata AuditMeta { get; private set; }
+
+    private readonly List<IDomainEvent> _domainEvents = new();
+    public IReadOnlyCollection<IDomainEvent> GetDomainEvents() => _domainEvents.ToList();
+    public void ClearDomainEvents() => _domainEvents.Clear();
+    private void RaiseDomainEvent(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
 
     private LedgerTransaction()
     {
@@ -71,6 +77,17 @@ public sealed class LedgerTransaction
             throw new DomainInvariantViolationException(
                 $"Transaction {Id} cannot be posted because the sum of its entries ({sum}) is not zero.");
         }
+
+        // Extract the credit and debit amounts to broadcast the event
+        var debitEntry = Entries.First(e => e.Direction == LedgerCore.Domain.Enums.EntryDirection.Debit);
+        var creditEntry = Entries.First(e => e.Direction == LedgerCore.Domain.Enums.EntryDirection.Credit);
+
+        RaiseDomainEvent(new FundsTransferredDomainEvent(
+            Id,
+            debitEntry.AccountId,
+            creditEntry.AccountId,
+            creditEntry.Amount,
+            Currency.Value));
 
         Status = TransactionStatus.Posted;
     }
