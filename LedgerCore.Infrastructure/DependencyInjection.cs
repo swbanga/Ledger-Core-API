@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using LedgerCore.Application.Data;
 using LedgerCore.Infrastructure.Database;
 using LedgerCore.Infrastructure.Data.Interceptors;
+using LedgerCore.Infrastructure.BackgroundJobs;
 
 namespace LedgerCore.Infrastructure;
 
@@ -17,6 +18,7 @@ public static class DependencyInjection
                    .AddInterceptors(sp.GetRequiredService<InsertOutboxMessagesInterceptor>()));
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<LedgerDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddHostedService<OutboxProcessorJob>();
         return services;
     }
 }
