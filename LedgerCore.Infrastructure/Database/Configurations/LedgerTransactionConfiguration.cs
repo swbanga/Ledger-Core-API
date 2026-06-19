@@ -1,3 +1,5 @@
+using LedgerCore.Domain.Entities;
+using LedgerCore.Domain.ValueObjects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
