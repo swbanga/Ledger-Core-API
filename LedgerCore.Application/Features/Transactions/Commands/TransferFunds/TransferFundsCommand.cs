@@ -1,5 +1,6 @@
 using System;
 using LedgerCore.Application.Behaviors; // Import the interface
+using LedgerCore.Application.Contracts;
 
 namespace LedgerCore.Application.Features.Transactions.Commands.TransferFunds;
 
@@ -8,4 +9,7 @@ public sealed record TransferFundsCommand(
     Guid DestinationAccountId,
     decimal Amount,
     string Currency,
-    Guid IdempotencyKey) : IIdempotentCommand<Guid>; // Implement the Idempotency Lock
+    Guid IdempotencyKey) : IIdempotentCommand<Guid>, IRateLimitedCommand
+{
+    public Guid RateLimitEntityId => SourceAccountId;
+}
