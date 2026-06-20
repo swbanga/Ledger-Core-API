@@ -6,7 +6,6 @@ using LedgerCore.Application.Data;
 using LedgerCore.Domain.Constants;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
-using LedgerCore.Domain.Constants;
 using LedgerCore.Domain.ValueObjects;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -66,14 +65,12 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
         // NEW STRICTLY CONSTRUCTED 4‑LEG ROUTING MATRIX USING DOMAIN ADDENTRY
         // --------------------------------------------------------
 
-        var transaction = new LedgerTransaction(
+        var transaction = new LedgerCore.Domain.Entities.LedgerTransaction(
             transactionId,
             $"REF-{Guid.NewGuid():N}",
-            TransactionType.PeerToPeer,
-            new CurrencyCode(request.Currency),
-            _timeProvider.GetUtcNow(),
-            new List<LedgerCore.Domain.Entities.LedgerEntry>(),
-            new AuditMetadata(Guid.Empty, "127.0.0.1", Channel.Web));
+            LedgerCore.Domain.Enums.TransactionType.PeerToPeer,
+            Guid.NewGuid().ToString() // Generates a unique CorrelationId for distributed tracing
+        );
 
         // 1. Leg 1: Source Debit (Principal + Fee + Tax)
         transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
