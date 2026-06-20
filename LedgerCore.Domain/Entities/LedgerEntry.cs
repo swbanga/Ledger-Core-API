@@ -13,7 +13,10 @@ public class LedgerEntry
     public EntryDirection Direction { get; private set; }
 
     // Required by Entity Framework Core for materialization
-    private LedgerEntry() { }
+    private LedgerEntry()
+    {
+        Value = null!;
+    }
 
     public LedgerEntry(Guid id, Guid transactionId, Guid accountId, Money value, EntryDirection direction)
     {

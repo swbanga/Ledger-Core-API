@@ -40,7 +40,7 @@ public class AccountBalanceProjector : INotificationHandler<TransactionPostedDom
                     projection = new AccountBalance
                     {
                         AccountId = entry.AccountId,
-                        CurrentBalance = entry.Amount,
+                        CurrentBalance = entry.Value.Amount,
                         LastUpdatedAt = DateTimeOffset.UtcNow
                     };
                     _context.AccountBalances.Add(projection);
@@ -50,7 +50,7 @@ public class AccountBalanceProjector : INotificationHandler<TransactionPostedDom
             }
             else
             {
-                projection.CurrentBalance += entry.Amount;
+                projection.CurrentBalance += entry.Value.Amount;
                 projection.LastUpdatedAt = DateTimeOffset.UtcNow;
             }
         }
