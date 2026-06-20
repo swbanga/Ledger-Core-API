@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 using LedgerCore.Domain.Events;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Projections;
@@ -12,29 +15,38 @@ namespace LedgerCore.Application.Features.Projections;
 
 public class AccountBalanceProjector : INotificationHandler<TransactionPostedDomainEvent>
 {
-    private readonly LedgerCore.Application.Data.IApplicationDbContext _context;
+    private readonly IApplicationDbContext _context;
+    private readonly IDistributedCache _cache;
 
-    public AccountBalanceProjector(LedgerCore.Application.Data.IApplicationDbContext context)
+    public AccountBalanceProjector(IApplicationDbContext context, IDistributedCache cache)
     {
         _context = context;
+        _cache = cache;
     }
 
     public async Task Handle(TransactionPostedDomainEvent notification, CancellationToken cancellationToken)
     {
+        var balances = new Dictionary<Guid, AccountBalance>();
+
         foreach (var entry in notification.Entries)
         {
-            var projection = await _context.AccountBalances
-                .FirstOrDefaultAsync(b => b.AccountId == entry.AccountId, cancellationToken);
-
-            if (projection == null)
+            if (!balances.TryGetValue(entry.AccountId, out var projection))
             {
-                projection = new AccountBalance
+                projection = await _context.AccountBalances
+                    .FirstOrDefaultAsync(b => b.AccountId == entry.AccountId, cancellationToken);
+
+                if (projection == null)
                 {
-                    AccountId = entry.AccountId,
-                    CurrentBalance = entry.Amount,
-                    LastUpdatedAt = DateTimeOffset.UtcNow
-                };
-                _context.AccountBalances.Add(projection);
+                    projection = new AccountBalance
+                    {
+                        AccountId = entry.AccountId,
+                        CurrentBalance = entry.Amount,
+                        LastUpdatedAt = DateTimeOffset.UtcNow
+                    };
+                    _context.AccountBalances.Add(projection);
+                }
+
+                balances[entry.AccountId] = projection;
             }
             else
             {
@@ -44,5 +56,19 @@ public class AccountBalanceProjector : INotificationHandler<TransactionPostedDom
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+
+        foreach (var kvp in balances)
+        {
+            var projection = kvp.Value;
+            var cacheOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+            };
+            await _cache.SetStringAsync(
+                $"AccountBalance_{projection.AccountId}",
+                JsonSerializer.Serialize(projection),
+                cacheOptions,
+                cancellationToken);
+        }
     }
 }

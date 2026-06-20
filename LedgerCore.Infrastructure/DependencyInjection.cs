@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using LedgerCore.Application.Data;
 using LedgerCore.Infrastructure.Database;
 using LedgerCore.Infrastructure.Data.Interceptors;
@@ -19,6 +20,13 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<LedgerDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddHostedService<OutboxProcessorJob>();
+
+        services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = "localhost:6379,password=DevSecOps#2026_Cache";
+            options.InstanceName = "Ledger_";
+        });
+
         return services;
     }
 }
