@@ -12,10 +12,19 @@ public sealed class LedgerEntryConfiguration : IEntityTypeConfiguration<LedgerEn
 
         builder.HasKey(e => e.Id);
 
-        // Explicitly lock financial precision. 18 total digits, 4 decimal places.
-        builder.Property(e => e.Amount)
-            .HasPrecision(18, 4)
-            .IsRequired();
+        // Map Money value object columns (Amount and Currency)
+        builder.OwnsOne(e => e.Value, money =>
+        {
+            money.Property(m => m.Amount)
+                .HasColumnName("Amount")
+                .HasPrecision(19, 4)
+                .IsRequired();
+
+            money.Property(m => m.Currency)
+                .HasColumnName("Currency")
+                .HasMaxLength(3)
+                .IsRequired();
+        });
 
         builder.Property(e => e.Direction)
             .HasConversion<string>()

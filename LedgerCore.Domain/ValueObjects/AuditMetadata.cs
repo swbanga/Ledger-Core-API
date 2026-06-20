@@ -5,8 +5,8 @@ namespace LedgerCore.Domain.ValueObjects;
 public sealed class AuditMetadata
 {
     public Guid UserId { get; }
-    public string IpAddress { get; }
-    public string DeviceId { get; }
+    public string IpAddress { get; } = null!;
+    public string DeviceId { get; } = null!;
 
     public AuditMetadata(Guid userId, string ipAddress, string deviceId)
     {
