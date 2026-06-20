@@ -20,7 +20,7 @@ public static class DependencyInjection
                    .AddInterceptors(sp.GetRequiredService<InsertOutboxMessagesInterceptor>()));
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<LedgerDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
-        services.AddHostedService<OutboxProcessorJob>();
+        services.AddHostedService<OutboxProcessorService>();
 
         services.AddStackExchangeRedisCache(options =>
         {
