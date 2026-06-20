@@ -42,13 +42,13 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var sourceAccount = new Account
         {
             Id = sourceId,
-            AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
+            AccountNumber = AccountNumber.CreateUserAccount("0123456789"),
             AccountType = AccountType.User
         };
         var destinationAccount = new Account
         {
             Id = destId,
-            AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
+            AccountNumber = AccountNumber.CreateUserAccount("0987654321"),
             AccountType = AccountType.User
         };
 
