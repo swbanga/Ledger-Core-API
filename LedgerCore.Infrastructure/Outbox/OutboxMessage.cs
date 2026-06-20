@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace LedgerCore.Infrastructure.Outbox;
 
@@ -8,6 +9,9 @@ public sealed class OutboxMessage
     public string Type { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public DateTimeOffset OccurredOn { get; set; }
-    public DateTimeOffset? ProcessedOn { get; set; }
+
+    [Column("ProcessedOn")]
+    public DateTimeOffset? ProcessedOnUtc { get; set; }
+
     public string? Error { get; set; }
 }

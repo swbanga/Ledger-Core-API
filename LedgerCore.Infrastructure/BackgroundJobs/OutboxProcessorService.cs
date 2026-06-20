@@ -59,7 +59,7 @@ public sealed class OutboxProcessorService : BackgroundService
 
         var messages = await dbContext.Set<OutboxMessage>()
             .Where(m => m.ProcessedOnUtc == null)
-            .OrderBy(m => m.OccurredOnUtc)
+            .OrderBy(m => m.OccurredOn)
             .Take(20)
             .ToListAsync(cancellationToken);
 
