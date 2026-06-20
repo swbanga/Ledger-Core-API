@@ -1,0 +1,84 @@
+using System;
+using System.Linq;
+using System.Reflection;
+using LedgerCore.Domain.Entities;
+using LedgerCore.Domain.ValueObjects;
+using LedgerCore.Infrastructure.Database;
+using NetArchTest.Rules;
+using Xunit;
+
+namespace LedgerCore.ArchitectureTests;
+
+public class DomainArchitectureTests
+{
+    private static readonly Assembly DomainAssembly = typeof(Account).Assembly;
+    private static readonly string DomainRoot =
+        string.Join('.', (typeof(Account).Namespace ?? string.Empty).Split('.').Take(2));
+    private static readonly string ApplicationRoot =
+        string.Join('.',
+            (typeof(LedgerCore.Application.Features.Accounts.Commands.CreateAccount.CreateAccountCommand)
+                .Namespace ?? string.Empty)
+            .Split('.').Take(2));
+    private static readonly string InfrastructureRoot =
+        string.Join('.', (typeof(LedgerDbContext).Namespace ?? string.Empty).Split('.').Take(2));
+    private static readonly string ApiRoot =
+        typeof(LedgerCore.Api.Program).Namespace!;
+
+    [Fact]
+    public void Domain_should_not_depend_on_Application()
+    {
+        var result = Types.InAssembly(DomainAssembly)
+            .That().ResideInNamespace(DomainRoot)
+            .ShouldNot()
+            .HaveDependencyOn(ApplicationRoot)
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Domain types have a dependency on the Application layer: {string.Join(", ", result.FailingTypeNames ?? Array.Empty<string>())}");
+    }
+
+    [Fact]
+    public void Domain_should_not_depend_on_Infrastructure()
+    {
+        var result = Types.InAssembly(DomainAssembly)
+            .That().ResideInNamespace(DomainRoot)
+            .ShouldNot()
+            .HaveDependencyOn(InfrastructureRoot)
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Domain types have a dependency on the Infrastructure layer: {string.Join(", ", result.FailingTypeNames ?? Array.Empty<string>())}");
+    }
+
+    [Fact]
+    public void Domain_should_not_depend_on_Api()
+    {
+        var result = Types.InAssembly(DomainAssembly)
+            .That().ResideInNamespace(DomainRoot)
+            .ShouldNot()
+            .HaveDependencyOn(ApiRoot)
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Domain types have a dependency on the Api layer: {string.Join(", ", result.FailingTypeNames ?? Array.Empty<string>())}");
+    }
+
+    [Fact]
+    public void ValueObjects_are_immutable()
+    {
+        var valueObjectNamespace = typeof(AccountNumber).Namespace!;
+
+        var result = Types.InAssembly(DomainAssembly)
+            .That().ResideInNamespace(valueObjectNamespace)
+            .Should()
+            .MeetCustomRule(t =>
+                t.IsClass &&
+                !t.IsAbstract &&
+                t.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .All(p => p.SetMethod == null || !p.SetMethod.IsPublic))
+            .GetResult();
+
+        Assert.True(result.IsSuccessful,
+            $"Value objects must be immutable (record or class with private setters): {string.Join(", ", result.FailingTypeNames ?? Array.Empty<string>())}");
+    }
+}
