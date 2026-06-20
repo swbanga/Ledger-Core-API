@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using LedgerCore.Application.Data;
 using LedgerCore.Domain.Projections;
+using LedgerCore.Application.Exceptions;
 
 namespace LedgerCore.Application.Features.Queries.GetAccountBalance;
 
@@ -36,7 +37,7 @@ public sealed class GetAccountBalanceQueryHandler : IRequestHandler<GetAccountBa
 
         if (balance == null)
         {
-            throw new InvalidOperationException($"AccountBalance not found for account ID {request.AccountId}.");
+            throw new NotFoundException($"AccountBalance not found for account ID {request.AccountId}.");
         }
 
         var cacheOptions = new DistributedCacheEntryOptions

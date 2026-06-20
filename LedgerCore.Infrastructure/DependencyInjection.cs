@@ -23,8 +23,8 @@ public static class DependencyInjection
 
         services.AddStackExchangeRedisCache(options =>
         {
-            options.Configuration = "localhost:6379,password=DevSecOps#2026_Cache";
-            options.InstanceName = "Ledger_";
+            options.Configuration = configuration.GetConnectionString("Redis");
+            options.InstanceName = "LedgerCore_";
         });
 
         return services;
