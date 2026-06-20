@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Testcontainers.SqlEdge;
@@ -32,10 +33,6 @@ public class SqlEdgeFixture : IAsyncLifetime
 
         _connectionString = _container.GetConnectionString() + ";Database=LedgerIntegrationTest";
 
-        // Physical schema burn
-        await using var context = CreateDbContext();
-        await context.Database.EnsureCreatedAsync();
-
         // Build the service pipeline
         var services = new ServiceCollection();
         services.AddLogging();
@@ -55,12 +52,24 @@ public class SqlEdgeFixture : IAsyncLifetime
         services.AddApplication();
         services.AddInfrastructure(configuration);
 
+        // Force weld: remove any existing DbContextOptions descriptor and register using the container's dynamic port.
+        var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<LedgerDbContext>));
+        if (descriptor != null) { services.Remove(descriptor); }
+
+        services.AddDbContext<LedgerDbContext>(options =>
+            options.UseSqlServer(_container.GetConnectionString()));
+
         services.AddSingleton(TimeProvider.System);
 
         // Override the request context with the testing fake.
         services.AddScoped<IRequestContext, FakeRequestContext>();
 
         _serviceProvider = services.BuildServiceProvider();
+
+        // Physical schema burn
+        using var scope = _serviceProvider.CreateScope();
+        var dbContext = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        await dbContext.Database.EnsureCreatedAsync();
     }
 
     /// <summary>
@@ -69,10 +78,8 @@ public class SqlEdgeFixture : IAsyncLifetime
     /// </summary>
     public LedgerDbContext CreateDbContext()
     {
-        var options = new DbContextOptionsBuilder<LedgerDbContext>()
-            .UseSqlServer(_connectionString)
-            .Options;
-
+        // Use the container's connection string via the DI options
+        var options = _serviceProvider.GetRequiredService<DbContextOptions<LedgerDbContext>>();
         return new LedgerDbContext(options);
     }
 
