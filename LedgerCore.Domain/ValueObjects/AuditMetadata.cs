@@ -2,11 +2,11 @@ using System;
 
 namespace LedgerCore.Domain.ValueObjects;
 
-public sealed class AuditMetadata
+public sealed record AuditMetadata
 {
-    public Guid UserId { get; }
-    public string IpAddress { get; } = null!;
-    public string DeviceId { get; } = null!;
+    public Guid UserId { get; init; }
+    public string IpAddress { get; init; }
+    public string DeviceId { get; init; }
 
     public AuditMetadata(Guid userId, string ipAddress, string deviceId)
     {
@@ -16,5 +16,9 @@ public sealed class AuditMetadata
     }
 
     // EF Core / serialization constructor
-    private AuditMetadata() { }
+    private AuditMetadata()
+    {
+        IpAddress = null!;
+        DeviceId = null!;
+    }
 }
