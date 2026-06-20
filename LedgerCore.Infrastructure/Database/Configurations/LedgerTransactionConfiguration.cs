@@ -34,5 +34,20 @@ public sealed class LedgerTransactionConfiguration : IEntityTypeConfiguration<Le
             .WithOne()
             .HasForeignKey(e => e.TransactionId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.OwnsOne(t => t.AuditMetadata, audit =>
+        {
+            audit.Property(a => a.UserId)
+                .HasColumnName("Audit_UserId")
+                .IsRequired();
+            audit.Property(a => a.IpAddress)
+                .HasColumnName("Audit_IpAddress")
+                .HasMaxLength(50)
+                .IsRequired(false);
+            audit.Property(a => a.DeviceId)
+                .HasColumnName("Audit_DeviceId")
+                .HasMaxLength(50)
+                .IsRequired(false);
+        });
     }
 }
