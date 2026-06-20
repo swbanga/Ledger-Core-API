@@ -101,13 +101,13 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var source = new Account
         {
             Id = sourceId,
-            AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
+            AccountNumber = AccountNumber.CreateUserAccount("0123456789"),
             AccountType = AccountType.User
         };
         var destination = new Account
         {
             Id = destId,
-            AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
+            AccountNumber = AccountNumber.CreateUserAccount("0987654321"),
             AccountType = AccountType.User
         };
 
@@ -146,13 +146,13 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var source = new Account
         {
             Id = sourceId,
-            AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
+            AccountNumber = AccountNumber.CreateUserAccount("0123456789"),
             AccountType = AccountType.User
         };
         var destination = new Account
         {
             Id = destId,
-            AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
+            AccountNumber = AccountNumber.CreateUserAccount("0987654321"),
             AccountType = AccountType.User
         };
 
@@ -190,14 +190,14 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var source = new Account
         {
             Id = sourceId,
-            AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
+            AccountNumber = AccountNumber.CreateUserAccount("0123456789"),
             AccountType = AccountType.User,
             KycTier = KycTier.Tier1   // tier 1 has a default limit of 10 000
         };
         var destination = new Account
         {
             Id = destId,
-            AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
+            AccountNumber = AccountNumber.CreateUserAccount("0987654321"),
             AccountType = AccountType.User
         };
 
