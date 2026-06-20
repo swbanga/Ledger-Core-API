@@ -43,15 +43,13 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = sourceId,
             AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
-            Currency = "USD",
-            Type = AccountType.User
+            AccountType = AccountType.User
         };
         var destinationAccount = new Account
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
-            Currency = "USD",
-            Type = AccountType.User
+            AccountType = AccountType.User
         };
 
         context.Accounts.AddRange(sourceAccount, destinationAccount);
@@ -75,14 +73,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         await context.SaveChangesAsync();
 
-        var command = new TransferFundsCommand
-        {
-            SourceAccountId = sourceId,
-            DestinationAccountId = destId,
-            Amount = 100m,
-            Currency = "USD",
-            IdempotencyKey = Guid.NewGuid()
-        };
+        var command = new TransferFundsCommand(sourceId, destId, 100m, "USD", Guid.NewGuid());
 
         // Act
         var transactionId = await mediator.Send(command, CancellationToken.None);
@@ -111,15 +102,13 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = sourceId,
             AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
-            Currency = "USD",
-            Type = AccountType.User
+            AccountType = AccountType.User
         };
         var destination = new Account
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
-            Currency = "USD",
-            Type = AccountType.User
+            AccountType = AccountType.User
         };
 
         context.Accounts.AddRange(source, destination);
@@ -131,14 +120,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         await context.SaveChangesAsync();
 
-        var command = new TransferFundsCommand
-        {
-            SourceAccountId = sourceId,
-            DestinationAccountId = destId,
-            Amount = 500m,
-            Currency = "USD",
-            IdempotencyKey = Guid.NewGuid()
-        };
+        var command = new TransferFundsCommand(sourceId, destId, 500m, "USD", Guid.NewGuid());
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<InsufficientFundsException>(() => mediator.Send(command, CancellationToken.None));
@@ -165,15 +147,13 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = sourceId,
             AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
-            Currency = "USD",
-            Type = AccountType.User
+            AccountType = AccountType.User
         };
         var destination = new Account
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
-            Currency = "USD",
-            Type = AccountType.User
+            AccountType = AccountType.User
         };
 
         context.Accounts.AddRange(source, destination);
@@ -185,14 +165,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         await context.SaveChangesAsync();
 
-        var command = new TransferFundsCommand
-        {
-            SourceAccountId = sourceId,
-            DestinationAccountId = destId,
-            Amount = 0m,
-            Currency = "USD",
-            IdempotencyKey = Guid.NewGuid()
-        };
+        var command = new TransferFundsCommand(sourceId, destId, 0m, "USD", Guid.NewGuid());
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<ValidationException>(() => mediator.Send(command, CancellationToken.None));
@@ -218,16 +191,14 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = sourceId,
             AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
-            Currency = "USD",
-            Type = AccountType.User,
-            KycTier = KycTier.T0   // tier 0 has a default limit of 10 000
+            AccountType = AccountType.User,
+            KycTier = KycTier.Tier1   // tier 1 has a default limit of 10 000
         };
         var destination = new Account
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
-            Currency = "USD",
-            Type = AccountType.User
+            AccountType = AccountType.User
         };
 
         context.Accounts.AddRange(source, destination);
@@ -239,14 +210,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         await context.SaveChangesAsync();
 
-        var command = new TransferFundsCommand
-        {
-            SourceAccountId = sourceId,
-            DestinationAccountId = destId,
-            Amount = 15_000m,
-            Currency = "USD",
-            IdempotencyKey = Guid.NewGuid()
-        };
+        var command = new TransferFundsCommand(sourceId, destId, 15_000m, "USD", Guid.NewGuid());
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(command, CancellationToken.None));
