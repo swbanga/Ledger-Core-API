@@ -1,7 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Testcontainers.SqlEdge;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using LedgerCore.Application;
+using LedgerCore.Application.Contracts;
+using LedgerCore.Infrastructure;
 using LedgerCore.Infrastructure.Database;
 using Xunit;
 
@@ -11,6 +18,9 @@ public class SqlEdgeFixture : IAsyncLifetime
 {
     private SqlEdgeContainer _container = null!;
     private string _connectionString = null!;
+    private IServiceProvider _serviceProvider = null!;
+
+    public IServiceProvider Services => _serviceProvider;
 
     public async Task InitializeAsync()
     {
@@ -25,6 +35,35 @@ public class SqlEdgeFixture : IAsyncLifetime
         // Physical schema burn
         await using var context = CreateDbContext();
         await context.Database.MigrateAsync();
+
+        // Build the service pipeline
+        var services = new ServiceCollection();
+        services.AddLogging();
+
+        services.AddDbContext<LedgerDbContext>(options =>
+            options.UseSqlServer(_connectionString));
+
+        // Substitute Redis distributed cache with in‑memory to avoid requiring a running Redis node.
+        services.AddDistributedMemoryCache();
+
+        var inMemorySettings = new Dictionary<string, string>
+        {
+            { "ConnectionStrings:LedgerCore", _connectionString }
+        };
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(inMemorySettings!)
+            .Build();
+        services.AddSingleton<IConfiguration>(configuration);
+
+        services.AddApplication();
+        services.AddInfrastructure(configuration);
+
+        services.AddSingleton(TimeProvider.System);
+
+        // Override the request context with the testing fake.
+        services.AddScoped<IRequestContext, FakeRequestContext>();
+
+        _serviceProvider = services.BuildServiceProvider();
     }
 
     /// <summary>
@@ -47,4 +86,14 @@ public class SqlEdgeFixture : IAsyncLifetime
             await _container.DisposeAsync();
         }
     }
+}
+
+internal sealed class FakeRequestContext : IRequestContext
+{
+    public Guid GetUserId() =>
+        Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+
+    public string GetIpAddress() => "127.0.0.1";
+
+    public string GetDeviceId() => "test-device";
 }

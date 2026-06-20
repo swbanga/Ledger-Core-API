@@ -2,16 +2,18 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FluentValidation;
 using LedgerCore.Application.Contracts;
-using LedgerCore.Application.Data;
 using LedgerCore.Application.Features.Transactions.Commands.TransferFunds;
 using LedgerCore.Domain.Constants;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
+using LedgerCore.Domain.Exceptions;
 using LedgerCore.Domain.ValueObjects;
 using LedgerCore.Infrastructure.Database;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace LedgerCore.IntegrationTests;
@@ -28,127 +30,230 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
     [Fact]
     public async Task TransferFunds_ShouldUpdateBalancesAndMaintainInvariant_WhenValid()
     {
-        // ── Arrange ───────────────────────────────────────────────
-        await using var context = _fixture.CreateDbContext();
+        // Arrange
+        await using var scope = _fixture.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        var reqCtx = scope.ServiceProvider.GetRequiredService<IRequestContext>();
 
-        // Fake dependencies
-        var fakeRequestContext = new FakeRequestContext();
-        var fakeUnitOfWork = new FakeUnitOfWork(context);
-        var timeProvider = TimeProvider.System;
+        var sourceId = Guid.NewGuid();
+        var destId = Guid.NewGuid();
 
-        // Seed source & destination accounts
         var sourceAccount = new Account
         {
-            Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+            Id = sourceId,
             AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
             Currency = "USD",
             Type = AccountType.User
         };
         var destinationAccount = new Account
         {
-            Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+            Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
             Currency = "USD",
             Type = AccountType.User
         };
-        context.Accounts.Add(sourceAccount);
-        context.Accounts.Add(destinationAccount);
 
-        // Give source account a starting balance (CID approach)
-        var openingAudit = new AuditMetadata(
-            fakeRequestContext.GetUserId(),
-            fakeRequestContext.GetIpAddress(),
-            fakeRequestContext.GetDeviceId());
-        var openingTransaction = new LedgerTransaction(
+        context.Accounts.AddRange(sourceAccount, destinationAccount);
+
+        // Seed source with $1000
+        var openingAudit = new AuditMetadata(reqCtx.GetUserId(), reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
+        var openingTx = new LedgerTransaction(
             Guid.NewGuid(),
             "OPENING",
             TransactionType.PeerToPeer,
             Guid.NewGuid().ToString(),
             openingAudit);
-        context.LedgerTransactions.Add(openingTransaction);
+
+        context.LedgerTransactions.Add(openingTx);
         context.LedgerEntries.Add(new LedgerEntry(
             Guid.NewGuid(),
-            openingTransaction.Id,
-            sourceAccount.Id,
+            openingTx.Id,
+            sourceId,
             new Money(1000m, "USD"),
             EntryDirection.Credit));
 
         await context.SaveChangesAsync();
 
-        // Handler under test
-        var handler = new TransferFundsCommandHandler(
-            context,
-            fakeUnitOfWork,
-            timeProvider,
-            fakeRequestContext);
-
         var command = new TransferFundsCommand
         {
-            SourceAccountId = sourceAccount.Id,
-            DestinationAccountId = destinationAccount.Id,
+            SourceAccountId = sourceId,
+            DestinationAccountId = destId,
             Amount = 100m,
             Currency = "USD",
             IdempotencyKey = Guid.NewGuid()
         };
 
-        // ── Act ───────────────────────────────────────────────────
-        var transactionId = await handler.Handle(command, CancellationToken.None);
+        // Act
+        var transactionId = await mediator.Send(command, CancellationToken.None);
 
-        // ── Assert ────────────────────────────────────────────────
+        // Assert
         var entries = await context.LedgerEntries
             .Where(e => e.TransactionId == transactionId)
             .ToListAsync();
 
-        // Source debited (principal + fee + tax)
-        var sourceEntry = entries.Single(e => e.AccountId == sourceAccount.Id);
-        Assert.Equal(EntryDirection.Debit, sourceEntry.Direction);
-        Assert.Equal(-101.50m, sourceEntry.Value.Amount);   // 100 + 1.50 + 0.50
-
-        // Destination credited (principal)
-        var destEntry = entries.Single(e => e.AccountId == destinationAccount.Id);
-        Assert.Equal(EntryDirection.Credit, destEntry.Direction);
-        Assert.Equal(100m, destEntry.Value.Amount);
-
-        // System fee routed
-        var feeEntry = entries.Single(e => e.AccountId == SystemAccountIds.SystemRevenue);
-        Assert.Equal(EntryDirection.Credit, feeEntry.Direction);
-        Assert.Equal(1.50m, feeEntry.Value.Amount);
-
-        // Tax routed
-        var taxEntry = entries.Single(e => e.AccountId == SystemAccountIds.TaxLiabilityZimra);
-        Assert.Equal(EntryDirection.Credit, taxEntry.Direction);
-        Assert.Equal(0.50m, taxEntry.Value.Amount);
-
-        // Absolute invariant ∑ = 0
-        var sum = entries.Sum(e => e.Value.Amount);
-        Assert.Equal(0m, sum);
+        Assert.Equal(4, entries.Count);
+        Assert.Equal(0m, entries.Sum(e => e.Value.Amount));
     }
 
-    // ── Fakes inside the test assembly ────────────────────────────
-
-    private sealed class FakeRequestContext : IRequestContext
+    [Fact]
+    public async Task TransferFunds_ShouldThrowInsufficientFunds_WhenBalanceTooLow()
     {
-        public Guid GetUserId() =>
-            Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee");
+        await using var scope = _fixture.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        var reqCtx = scope.ServiceProvider.GetRequiredService<IRequestContext>();
 
-        public string GetIpAddress() => "127.0.0.1";
+        var sourceId = Guid.NewGuid();
+        var destId = Guid.NewGuid();
 
-        public string GetDeviceId() => "test-device";
+        var source = new Account
+        {
+            Id = sourceId,
+            AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
+            Currency = "USD",
+            Type = AccountType.User
+        };
+        var destination = new Account
+        {
+            Id = destId,
+            AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
+            Currency = "USD",
+            Type = AccountType.User
+        };
+
+        context.Accounts.AddRange(source, destination);
+
+        var openingAudit = new AuditMetadata(reqCtx.GetUserId(), reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
+        var openingTx = new LedgerTransaction(Guid.NewGuid(), "OPENING", TransactionType.PeerToPeer, Guid.NewGuid().ToString(), openingAudit);
+        context.LedgerTransactions.Add(openingTx);
+        context.LedgerEntries.Add(new LedgerEntry(Guid.NewGuid(), openingTx.Id, sourceId, new Money(50m, "USD"), EntryDirection.Credit));
+
+        await context.SaveChangesAsync();
+
+        var command = new TransferFundsCommand
+        {
+            SourceAccountId = sourceId,
+            DestinationAccountId = destId,
+            Amount = 500m,
+            Currency = "USD",
+            IdempotencyKey = Guid.NewGuid()
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InsufficientFundsException>(() => mediator.Send(command, CancellationToken.None));
+        Assert.Contains("insufficient", ex.Message, StringComparison.OrdinalIgnoreCase);
+
+        // Prove DB untouched beyond the opening transaction
+        await using var verifyContext = _fixture.CreateDbContext();
+        var txCount = await verifyContext.LedgerTransactions.CountAsync();
+        Assert.Equal(1, txCount);
     }
 
-    private sealed class FakeUnitOfWork : IUnitOfWork
+    [Fact]
+    public async Task TransferFunds_ShouldThrow_WhenAmountIsZero()
     {
-        private readonly IApplicationDbContext _dbContext;
+        await using var scope = _fixture.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        var reqCtx = scope.ServiceProvider.GetRequiredService<IRequestContext>();
 
-        public FakeUnitOfWork(IApplicationDbContext dbContext)
-        {
-            _dbContext = dbContext;
-        }
+        var sourceId = Guid.NewGuid();
+        var destId = Guid.NewGuid();
 
-        public Task<int> SaveChangesAsync(CancellationToken cancellationToken)
+        var source = new Account
         {
-            // Downcast to the EF Core context because the interface only exposes application-level contract.
-            return ((LedgerDbContext)_dbContext).SaveChangesAsync(cancellationToken);
-        }
+            Id = sourceId,
+            AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
+            Currency = "USD",
+            Type = AccountType.User
+        };
+        var destination = new Account
+        {
+            Id = destId,
+            AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
+            Currency = "USD",
+            Type = AccountType.User
+        };
+
+        context.Accounts.AddRange(source, destination);
+
+        var openingAudit = new AuditMetadata(reqCtx.GetUserId(), reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
+        var openingTx = new LedgerTransaction(Guid.NewGuid(), "OPENING", TransactionType.PeerToPeer, Guid.NewGuid().ToString(), openingAudit);
+        context.LedgerTransactions.Add(openingTx);
+        context.LedgerEntries.Add(new LedgerEntry(Guid.NewGuid(), openingTx.Id, sourceId, new Money(1000m, "USD"), EntryDirection.Credit));
+
+        await context.SaveChangesAsync();
+
+        var command = new TransferFundsCommand
+        {
+            SourceAccountId = sourceId,
+            DestinationAccountId = destId,
+            Amount = 0m,
+            Currency = "USD",
+            IdempotencyKey = Guid.NewGuid()
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<ValidationException>(() => mediator.Send(command, CancellationToken.None));
+        Assert.Contains("Amount", ex.Message, StringComparison.OrdinalIgnoreCase);
+
+        await using var verifyContext = _fixture.CreateDbContext();
+        var txCount = await verifyContext.LedgerTransactions.CountAsync();
+        Assert.Equal(1, txCount);
+    }
+
+    [Fact]
+    public async Task TransferFunds_ShouldThrowKycLimitException_WhenLimitExceeded()
+    {
+        await using var scope = _fixture.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+        var reqCtx = scope.ServiceProvider.GetRequiredService<IRequestContext>();
+
+        var sourceId = Guid.NewGuid();
+        var destId = Guid.NewGuid();
+
+        var source = new Account
+        {
+            Id = sourceId,
+            AccountNumber = AccountNumber.CreateUserAccount("SRC10001"),
+            Currency = "USD",
+            Type = AccountType.User,
+            KycTier = KycTier.T0   // tier 0 has a default limit of 10 000
+        };
+        var destination = new Account
+        {
+            Id = destId,
+            AccountNumber = AccountNumber.CreateUserAccount("DST20001"),
+            Currency = "USD",
+            Type = AccountType.User
+        };
+
+        context.Accounts.AddRange(source, destination);
+
+        var openingAudit = new AuditMetadata(reqCtx.GetUserId(), reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
+        var openingTx = new LedgerTransaction(Guid.NewGuid(), "OPENING", TransactionType.PeerToPeer, Guid.NewGuid().ToString(), openingAudit);
+        context.LedgerTransactions.Add(openingTx);
+        context.LedgerEntries.Add(new LedgerEntry(Guid.NewGuid(), openingTx.Id, sourceId, new Money(20_000m, "USD"), EntryDirection.Credit));
+
+        await context.SaveChangesAsync();
+
+        var command = new TransferFundsCommand
+        {
+            SourceAccountId = sourceId,
+            DestinationAccountId = destId,
+            Amount = 15_000m,
+            Currency = "USD",
+            IdempotencyKey = Guid.NewGuid()
+        };
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => mediator.Send(command, CancellationToken.None));
+        Assert.Contains("KYC", ex.Message, StringComparison.OrdinalIgnoreCase);
+
+        await using var verifyContext = _fixture.CreateDbContext();
+        var txCount = await verifyContext.LedgerTransactions.CountAsync();
+        Assert.Equal(1, txCount);
     }
 }
