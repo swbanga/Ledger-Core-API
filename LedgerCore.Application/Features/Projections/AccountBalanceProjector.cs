@@ -12,9 +12,9 @@ namespace LedgerCore.Application.Features.Projections;
 
 public class AccountBalanceProjector : INotificationHandler<TransactionPostedDomainEvent>
 {
-    private readonly IApplicationDbContext _context;
+    private readonly LedgerCore.Application.Data.IApplicationDbContext _context;
 
-    public AccountBalanceProjector(IApplicationDbContext context)
+    public AccountBalanceProjector(LedgerCore.Application.Data.IApplicationDbContext context)
     {
         _context = context;
     }

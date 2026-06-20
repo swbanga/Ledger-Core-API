@@ -9,7 +9,7 @@ public interface IApplicationDbContext
     DbSet<Account> Accounts { get; }
     DbSet<LedgerTransaction> LedgerTransactions { get; }
     DbSet<LedgerEntry> LedgerEntries { get; }
-    DbSet<AccountBalance> AccountBalances { get; }
+    Microsoft.EntityFrameworkCore.DbSet<LedgerCore.Domain.Projections.AccountBalance> AccountBalances { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }
