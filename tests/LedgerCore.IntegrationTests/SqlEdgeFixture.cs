@@ -40,9 +40,6 @@ public class SqlEdgeFixture : IAsyncLifetime
         var services = new ServiceCollection();
         services.AddLogging();
 
-        services.AddDbContext<LedgerDbContext>(options =>
-            options.UseSqlServer(_connectionString));
-
         // Substitute Redis distributed cache with in‑memory to avoid requiring a running Redis node.
         services.AddDistributedMemoryCache();
 
