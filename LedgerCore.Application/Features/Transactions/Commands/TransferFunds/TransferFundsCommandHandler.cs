@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using LedgerCore.Application.Data;
+using LedgerCore.Domain.Constants;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.Constants;
@@ -61,14 +62,9 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
 
         var transactionId = Guid.NewGuid();
 
-        // Execute the 4-Leg Multi-Routing Matrix
-        var entries = new List<LedgerCore.Domain.Entities.LedgerEntry>
-        {
-            new() { Id = Guid.NewGuid(), AccountId = request.SourceAccountId, Amount = -totalDebit, Direction = LedgerCore.Domain.Enums.EntryDirection.Debit },
-            new() { Id = Guid.NewGuid(), AccountId = request.DestinationAccountId, Amount = principal, Direction = LedgerCore.Domain.Enums.EntryDirection.Credit },
-            new() { Id = Guid.NewGuid(), AccountId = SystemAccountIds.SystemRevenue, Amount = systemFee, Direction = LedgerCore.Domain.Enums.EntryDirection.Credit },
-            new() { Id = Guid.NewGuid(), AccountId = SystemAccountIds.TaxLiabilityZimra, Amount = zimraTax, Direction = LedgerCore.Domain.Enums.EntryDirection.Credit }
-        };
+        // --------------------------------------------------------
+        // NEW STRICTLY CONSTRUCTED 4‑LEG ROUTING MATRIX USING DOMAIN ADDENTRY
+        // --------------------------------------------------------
 
         var transaction = new LedgerTransaction(
             transactionId,
@@ -79,16 +75,42 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             new List<LedgerCore.Domain.Entities.LedgerEntry>(),
             new AuditMetadata(Guid.Empty, "127.0.0.1", Channel.Web));
 
-        // Add all 4 legs to the aggregate root
-        foreach (var entry in entries)
-        {
-            transaction.Entries.Add(entry);
-        }
+        // 1. Leg 1: Source Debit (Principal + Fee + Tax)
+        transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
+            Guid.NewGuid(), 
+            transaction.Id, 
+            request.SourceAccountId, 
+            -totalDebit, 
+            LedgerCore.Domain.Enums.EntryDirection.Debit));
+
+        // 2. Leg 2: Destination Credit (Principal)
+        transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
+            Guid.NewGuid(), 
+            transaction.Id, 
+            request.DestinationAccountId, 
+            principal, 
+            LedgerCore.Domain.Enums.EntryDirection.Credit));
+
+        // 3. Leg 3: System Revenue Credit (Platform Fee)
+        transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
+            Guid.NewGuid(), 
+            transaction.Id, 
+            SystemAccountIds.SystemRevenue, 
+            systemFee, 
+            LedgerCore.Domain.Enums.EntryDirection.Credit));
+
+        // 4. Leg 4: ZIMRA Tax Liability Credit (IMTT)
+        transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
+            Guid.NewGuid(), 
+            transaction.Id, 
+            SystemAccountIds.TaxLiabilityZimra, 
+            zimraTax, 
+            LedgerCore.Domain.Enums.EntryDirection.Credit));
 
         // The Absolute Mathematical Invariant
         if (transaction.Entries.Sum(e => e.Amount) != 0)
         {
-            throw new InvalidOperationException("FATAL: Double-entry invariant violated. Multi-leg transaction does not balance to absolute zero.");
+            throw new System.InvalidOperationException("FATAL: Double-entry invariant violated. Multi-leg transaction does not balance to absolute zero.");
         }
 
         transaction.Post(_timeProvider);

@@ -16,10 +16,19 @@ public sealed class LedgerTransaction
     public TransactionType Type { get; private set; }
     public CurrencyCode Currency { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
-    public IReadOnlyCollection<LedgerEntry> Entries { get; private set; }
+    private readonly List<LedgerEntry> _entries = new();
+    public IReadOnlyCollection<LedgerEntry> Entries => _entries.AsReadOnly();
     public AuditMetadata AuditMeta { get; private set; }
 
     private readonly List<IDomainEvent> _domainEvents = new();
+
+    public void AddEntry(LedgerCore.Domain.Entities.LedgerEntry entry)
+    {
+        if (Status != LedgerCore.Domain.Enums.TransactionStatus.Pending)
+            throw new System.InvalidOperationException("Cannot append entries to a finalized transaction.");
+
+        _entries.Add(entry);
+    }
     public IReadOnlyCollection<IDomainEvent> GetDomainEvents() => _domainEvents.ToList();
     public void ClearDomainEvents() => _domainEvents.Clear();
     private void RaiseDomainEvent(IDomainEvent domainEvent) => _domainEvents.Add(domainEvent);
@@ -28,7 +37,6 @@ public sealed class LedgerTransaction
     {
         ReferenceCode = null!;
         Currency = null!;
-        Entries = null!;
         AuditMeta = null!;
     } // EF Core constructor
 
@@ -47,8 +55,8 @@ public sealed class LedgerTransaction
         if (string.IsNullOrWhiteSpace(referenceCode))
             throw new ArgumentException("ReferenceCode cannot be null or whitespace.", nameof(referenceCode));
 
-        if (entries == null || entries.Count == 0)
-            throw new ArgumentException("Entries collection cannot be null or empty.", nameof(entries));
+        if (entries == null)
+            throw new ArgumentException("Entries collection cannot be null.", nameof(entries));
 
         if (auditMeta == null)
             throw new ArgumentNullException(nameof(auditMeta));
@@ -59,7 +67,7 @@ public sealed class LedgerTransaction
         Type = type;
         Currency = currency ?? throw new ArgumentNullException(nameof(currency));
         CreatedAt = createdAt;
-        Entries = entries;
+        _entries.AddRange(entries);
         AuditMeta = auditMeta;
     }
 
