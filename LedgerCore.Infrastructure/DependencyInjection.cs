@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using System;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
@@ -15,7 +16,7 @@ public static class DependencyInjection
     {
         services.AddSingleton<InsertOutboxMessagesInterceptor>();
         services.AddDbContext<LedgerDbContext>((sp, options) =>
-            options.UseSqlServer(configuration.GetConnectionString("Database"))
+            options.UseSqlServer(configuration.GetConnectionString("Database"), sqlOptions => sqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(2), errorNumbersToAdd: null))
                    .AddInterceptors(sp.GetRequiredService<InsertOutboxMessagesInterceptor>()));
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<LedgerDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();

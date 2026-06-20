@@ -13,6 +13,7 @@ public static class DependencyInjection
             cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly);
             cfg.AddOpenBehavior(typeof(LedgerCore.Application.Behaviors.LoggingBehavior<,>));
             cfg.AddOpenBehavior(typeof(LedgerCore.Application.Behaviors.VelocityCheckBehavior<,>));
+            cfg.AddOpenBehavior(typeof(LedgerCore.Application.Behaviors.KycLimitBehavior<,>));
         });
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LedgerCore.Application.Behaviors.IdempotencyBehavior<,>));

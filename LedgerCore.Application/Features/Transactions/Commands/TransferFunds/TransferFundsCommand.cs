@@ -9,7 +9,7 @@ public sealed record TransferFundsCommand(
     Guid DestinationAccountId,
     decimal Amount,
     string Currency,
-    Guid IdempotencyKey) : IIdempotentCommand<Guid>, IRateLimitedCommand
+    Guid IdempotencyKey) : IIdempotentCommand<Guid>, IRateLimitedCommand, IFinancialCommand
 {
     public Guid RateLimitEntityId => SourceAccountId;
 }
