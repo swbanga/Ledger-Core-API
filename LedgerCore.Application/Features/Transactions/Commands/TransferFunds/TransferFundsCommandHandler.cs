@@ -108,15 +108,10 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             LedgerCore.Domain.Enums.EntryDirection.Credit));
 
         // The Absolute Mathematical Invariant
-        if (transaction.Entries.Sum(e => e.Amount) != 0)
-        {
-            throw new System.InvalidOperationException("FATAL: Double-entry invariant violated. Multi-leg transaction does not balance to absolute zero.");
-        }
-
-        transaction.Post(_timeProvider);
+        // Mathematically locks the transaction and transitions state to Posted
+        transaction.Post(); 
 
         _context.LedgerTransactions.Add(transaction);
-
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return transaction.Id;
