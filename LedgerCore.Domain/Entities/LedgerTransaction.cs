@@ -55,5 +55,7 @@ public class LedgerTransaction
             throw new InvalidOperationException($"FATAL: Double-entry invariant violated. Imbalance of {balance}. Logical money creation/destruction detected.");
 
         Status = TransactionStatus.Posted;
+        
+        _domainEvents.Add(new LedgerCore.Domain.Events.TransactionPostedDomainEvent(Id, _entries.AsReadOnly()));
     }
 }
