@@ -34,7 +34,7 @@ public class SqlEdgeFixture : IAsyncLifetime
 
         // Physical schema burn
         await using var context = CreateDbContext();
-        await context.Database.MigrateAsync();
+        await context.Database.EnsureCreatedAsync();
 
         // Build the service pipeline
         var services = new ServiceCollection();
