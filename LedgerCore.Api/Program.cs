@@ -7,6 +7,8 @@ using LedgerCore.Application.Authentication;
 using LedgerCore.Application.Interfaces;
 using LedgerCore.Infrastructure.Idempotency;
 using LedgerCore.Application;
+using LedgerCore.Application.Contracts;
+using LedgerCore.Api.Services;
 using LedgerCore.Infrastructure;
 using Serilog;
 using Serilog.Extensions.Hosting;
@@ -33,6 +35,9 @@ builder.Services.AddControllers();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 builder.Services.AddSingleton(TimeProvider.System);
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IRequestContext, RequestContext>();
 
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection(JwtSettings.SectionName));
 builder.Services.AddSingleton<IJwtProvider, JwtProvider>();

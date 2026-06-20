@@ -7,6 +7,7 @@ using LedgerCore.Domain.Constants;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.ValueObjects;
+using LedgerCore.Application.Contracts;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,15 +18,18 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
     private readonly IApplicationDbContext _context;
     private readonly IUnitOfWork _unitOfWork;
     private readonly TimeProvider _timeProvider;
+    private readonly IRequestContext _requestContext;
 
     public TransferFundsCommandHandler(
         IApplicationDbContext context,
         IUnitOfWork unitOfWork,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IRequestContext requestContext)
     {
         _context = context;
         _unitOfWork = unitOfWork;
         _timeProvider = timeProvider;
+        _requestContext = requestContext;
     }
 
     public async Task<Guid> Handle(TransferFundsCommand request, CancellationToken cancellationToken)
@@ -65,11 +69,14 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
         // NEW STRICTLY CONSTRUCTED 4‑LEG ROUTING MATRIX USING DOMAIN ADDENTRY
         // --------------------------------------------------------
 
+        var metadata = new AuditMetadata(_requestContext.GetUserId(), _requestContext.GetIpAddress(), _requestContext.GetDeviceId());
+
         var transaction = new LedgerCore.Domain.Entities.LedgerTransaction(
             transactionId,
             $"REF-{Guid.NewGuid():N}",
             LedgerCore.Domain.Enums.TransactionType.PeerToPeer,
-            Guid.NewGuid().ToString() // Generates a unique CorrelationId for distributed tracing
+            Guid.NewGuid().ToString(), // Generates a unique CorrelationId for distributed tracing
+            metadata
         );
 
         var currency = request.Currency;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.Events;
+using LedgerCore.Domain.ValueObjects;
 
 namespace LedgerCore.Domain.Entities;
 
@@ -18,15 +19,20 @@ public class LedgerTransaction
     public DateTimeOffset TimestampUtc { get; private set; }
     public string CorrelationId { get; private set; } = string.Empty;
 
+    public AuditMetadata AuditMetadata { get; private set; }
+
     public IReadOnlyCollection<LedgerEntry> Entries => _entries.AsReadOnly();
 
     public IReadOnlyCollection<IDomainEvent> GetDomainEvents() => _domainEvents.AsReadOnly();
     public void ClearDomainEvents() => _domainEvents.Clear();
 
     // Required by EF Core
-    protected LedgerTransaction() { }
+    protected LedgerTransaction()
+    {
+        AuditMetadata = null!;
+    }
 
-    public LedgerTransaction(Guid id, string referenceCode, TransactionType type, string correlationId)
+    public LedgerTransaction(Guid id, string referenceCode, TransactionType type, string correlationId, AuditMetadata auditMetadata)
     {
         Id = id;
         ReferenceCode = referenceCode;
@@ -34,6 +40,7 @@ public class LedgerTransaction
         Status = TransactionStatus.Pending;
         TimestampUtc = DateTimeOffset.UtcNow;
         CorrelationId = correlationId;
+        AuditMetadata = auditMetadata;
     }
 
     public void AddEntry(LedgerEntry entry)
