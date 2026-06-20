@@ -31,11 +31,17 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
             b.HasKey(x => x.Id);
         });
         
+        // --- PHASE 3: CQRS READ MODEL SNAPSHOT ---
         modelBuilder.Entity<AccountBalance>(b =>
-        {
-            b.ToTable("AccountBalances");
-            b.HasKey(x => x.AccountId);
-            b.Property(x => x.RowVersion).IsRowVersion();
-        });
+    {
+        b.ToTable("AccountBalances");
+        b.HasKey(x => x.AccountId); 
+
+        b.Property(x => x.CurrentBalance)
+         .HasPrecision(19, 4)
+         .IsRequired();
+
+        b.Property(x => x.RowVersion).IsRowVersion();
+    });
     }
 }

@@ -4,6 +4,7 @@ using LedgerCore.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LedgerCore.Infrastructure.Migrations
 {
     [DbContext(typeof(LedgerDbContext))]
-    partial class LedgerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260619222942_Phase1_CoreSeeding_V2")]
+    partial class Phase1_CoreSeeding_V2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -122,9 +125,14 @@ namespace LedgerCore.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("CorrelationId")
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Currency")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasColumnName("Currency");
 
                     b.Property<string>("ReferenceCode")
                         .IsRequired()
@@ -136,10 +144,7 @@ namespace LedgerCore.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<DateTimeOffset>("TimestampUtc")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<string>("TransactionType")
+                    b.Property<string>("Type")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -150,30 +155,6 @@ namespace LedgerCore.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("LedgerTransactions", (string)null);
-                });
-
-            modelBuilder.Entity("LedgerCore.Domain.Projections.AccountBalance", b =>
-                {
-                    b.Property<Guid>("AccountId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("CurrentBalance")
-                        .HasPrecision(19, 4)
-                        .HasColumnType("decimal(19,4)");
-
-                    b.Property<DateTimeOffset>("LastUpdatedAt")
-                        .HasColumnType("datetimeoffset");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.HasKey("AccountId");
-
-                    b.ToTable("AccountBalances", (string)null);
                 });
 
             modelBuilder.Entity("LedgerCore.Infrastructure.Outbox.OutboxMessage", b =>
@@ -210,6 +191,41 @@ namespace LedgerCore.Infrastructure.Migrations
                         .WithMany("Entries")
                         .HasForeignKey("TransactionId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("LedgerCore.Domain.Entities.LedgerTransaction", b =>
+                {
+                    b.OwnsOne("LedgerCore.Domain.ValueObjects.AuditMetadata", "AuditMeta", b1 =>
+                        {
+                            b1.Property<Guid>("LedgerTransactionId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Channel")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("nvarchar(20)")
+                                .HasColumnName("Channel");
+
+                            b1.Property<Guid>("CreatedByUserId")
+                                .HasColumnType("uniqueidentifier")
+                                .HasColumnName("CreatedByUserId");
+
+                            b1.Property<string>("IpAddress")
+                                .IsRequired()
+                                .HasMaxLength(45)
+                                .HasColumnType("nvarchar(45)")
+                                .HasColumnName("IpAddress");
+
+                            b1.HasKey("LedgerTransactionId");
+
+                            b1.ToTable("LedgerTransactions");
+
+                            b1.WithOwner()
+                                .HasForeignKey("LedgerTransactionId");
+                        });
+
+                    b.Navigation("AuditMeta")
                         .IsRequired();
                 });
 
