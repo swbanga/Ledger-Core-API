@@ -8,8 +8,23 @@ using LedgerCore.Application.Interfaces;
 using LedgerCore.Infrastructure.Idempotency;
 using LedgerCore.Application;
 using LedgerCore.Infrastructure;
+using Serilog;
+using Serilog.Extensions.Hosting;
+using Serilog.Formatting.Compact;
+
+Serilog.Log.Logger = new Serilog.LoggerConfiguration()
+    .Enrich.FromLogContext()
+    .WriteTo.Console(new Serilog.Formatting.Compact.CompactJsonFormatter())
+    .CreateBootstrapLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "LedgerCore")
+    .WriteTo.Console(new Serilog.Formatting.Compact.CompactJsonFormatter()));
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -53,6 +68,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 app.UseExceptionHandler();
+
+app.UseSerilogRequestLogging();
 
 app.MapControllers();
 app.UseAuthentication();
