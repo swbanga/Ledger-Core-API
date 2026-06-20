@@ -5,6 +5,7 @@ using LedgerCore.Application.Data;
 using LedgerCore.Domain.Constants;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
+using LedgerCore.Domain.ValueObjects;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,7 +43,7 @@ namespace LedgerCore.Application.Features.Admin.Commands.ProvisionAgentFloat
                 Guid.NewGuid(),
                 transaction.Id,
                 LedgerCore.Domain.Constants.SystemAccountIds.SystemReserve,
-                -request.Amount,
+                new Money(-request.Amount, "USD"),
                 LedgerCore.Domain.Enums.EntryDirection.Debit));
 
             // Leg 2: Credit Agent Float
@@ -50,7 +51,7 @@ namespace LedgerCore.Application.Features.Admin.Commands.ProvisionAgentFloat
                 Guid.NewGuid(),
                 transaction.Id,
                 request.AgentAccountId,
-                request.Amount,
+                new Money(request.Amount, "USD"),
                 LedgerCore.Domain.Enums.EntryDirection.Credit));
 
             transaction.Post();

@@ -50,9 +50,15 @@ public class LedgerTransaction
         if (Status != TransactionStatus.Pending)
             throw new InvalidOperationException("Only pending transactions can be posted.");
 
-        var balance = _entries.Sum(e => e.Amount);
+        if (_entries.Any(e => e.Value.Amount == 0))
+            throw new InvalidOperationException("FATAL: Ghost entry detected. $0.00 entries are forbidden.");
+
+        if (_entries.Select(e => e.Value.Currency).Distinct().Count() > 1)
+            throw new InvalidOperationException("FATAL: Mixed-currency transaction matrix detected. All entries must resolve to a single currency.");
+
+        var balance = _entries.Sum(e => e.Value.Amount);
         if (balance != 0)
-            throw new InvalidOperationException($"FATAL: Double-entry invariant violated. Imbalance of {balance}. Logical money creation/destruction detected.");
+            throw new InvalidOperationException($"FATAL: Double-entry invariant violated. Imbalance of {balance}.");
 
         Status = TransactionStatus.Posted;
         

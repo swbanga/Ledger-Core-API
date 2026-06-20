@@ -30,6 +30,16 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
             b.ToTable("OutboxMessages");
             b.HasKey(x => x.Id);
         });
+
+        // --- MONEY VALUE OBJECT EF CORE MAPPING ---
+        modelBuilder.Entity<LedgerCore.Domain.Entities.LedgerEntry>(b =>
+        {
+            b.OwnsOne(e => e.Value, m =>
+            {
+                m.Property(p => p.Amount).HasPrecision(19, 4).HasColumnName("Amount");
+                m.Property(p => p.Currency).HasMaxLength(3).HasColumnName("Currency");
+            });
+        });
         
         // --- PHASE 3: CQRS READ MODEL SNAPSHOT ---
         modelBuilder.Entity<AccountBalance>(b =>

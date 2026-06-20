@@ -45,7 +45,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
         // --- NEW ENFORCEMENT: THE OVERDRAFT DEFENSE SHIELD ---
         var currentBalance = await _context.LedgerEntries
             .Where(e => e.AccountId == request.SourceAccountId)
-            .SumAsync(e => e.Amount, cancellationToken);
+            .SumAsync(e => e.Value.Amount, cancellationToken);
 
         var principal = request.Amount;
         var systemFee = 1.50m;
@@ -72,12 +72,14 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             Guid.NewGuid().ToString() // Generates a unique CorrelationId for distributed tracing
         );
 
+        var currency = request.Currency;
+
         // 1. Leg 1: Source Debit (Principal + Fee + Tax)
         transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
             Guid.NewGuid(), 
             transaction.Id, 
             request.SourceAccountId, 
-            -totalDebit, 
+            new Money(-totalDebit, currency), 
             LedgerCore.Domain.Enums.EntryDirection.Debit));
 
         // 2. Leg 2: Destination Credit (Principal)
@@ -85,7 +87,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             Guid.NewGuid(), 
             transaction.Id, 
             request.DestinationAccountId, 
-            principal, 
+            new Money(principal, currency), 
             LedgerCore.Domain.Enums.EntryDirection.Credit));
 
         // 3. Leg 3: System Revenue Credit (Platform Fee)
@@ -93,7 +95,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             Guid.NewGuid(), 
             transaction.Id, 
             SystemAccountIds.SystemRevenue, 
-            systemFee, 
+            new Money(systemFee, currency), 
             LedgerCore.Domain.Enums.EntryDirection.Credit));
 
         // 4. Leg 4: ZIMRA Tax Liability Credit (IMTT)
@@ -101,7 +103,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             Guid.NewGuid(), 
             transaction.Id, 
             SystemAccountIds.TaxLiabilityZimra, 
-            zimraTax, 
+            new Money(zimraTax, currency), 
             LedgerCore.Domain.Enums.EntryDirection.Credit));
 
         // The Absolute Mathematical Invariant
