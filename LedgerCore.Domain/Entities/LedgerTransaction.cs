@@ -2,12 +2,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using LedgerCore.Domain.Enums;
+using LedgerCore.Domain.Events;
 
 namespace LedgerCore.Domain.Entities;
 
 public class LedgerTransaction
 {
     private readonly List<LedgerEntry> _entries = new();
+    private readonly List<IDomainEvent> _domainEvents = new();
 
     public Guid Id { get; private set; }
     public string ReferenceCode { get; private set; } = string.Empty;
@@ -17,6 +19,9 @@ public class LedgerTransaction
     public string CorrelationId { get; private set; } = string.Empty;
 
     public IReadOnlyCollection<LedgerEntry> Entries => _entries.AsReadOnly();
+
+    public IReadOnlyCollection<IDomainEvent> GetDomainEvents() => _domainEvents.AsReadOnly();
+    public void ClearDomainEvents() => _domainEvents.Clear();
 
     // Required by EF Core
     protected LedgerTransaction() { }

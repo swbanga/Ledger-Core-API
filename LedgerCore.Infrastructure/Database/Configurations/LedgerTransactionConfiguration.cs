@@ -24,25 +24,11 @@ public sealed class LedgerTransactionConfiguration : IEntityTypeConfiguration<Le
             .HasMaxLength(50)
             .IsRequired();
 
-        builder.Property(t => t.Type)
+        builder.Property(t => t.TransactionType)
             .HasConversion<string>()
             .HasMaxLength(50)
             .IsRequired();
 
-        builder.Property(t => t.Currency)
-            .HasConversion(
-                currency => currency.Value,
-                value => new CurrencyCode(value))
-            .HasColumnName("Currency")
-            .HasMaxLength(3)
-            .IsRequired();
-
-        builder.OwnsOne(t => t.AuditMeta, audit =>
-        {
-            audit.Property(a => a.CreatedByUserId).HasColumnName("CreatedByUserId");
-            audit.Property(a => a.IpAddress).HasColumnName("IpAddress").HasMaxLength(45);
-            audit.Property(a => a.Channel).HasConversion<string>().HasColumnName("Channel").HasMaxLength(20);
-        });
 
         builder.HasMany(t => t.Entries)
             .WithOne()
