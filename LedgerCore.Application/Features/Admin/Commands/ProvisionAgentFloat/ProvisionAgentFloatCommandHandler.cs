@@ -5,7 +5,6 @@ using LedgerCore.Application.Data;
 using LedgerCore.Domain.Constants;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
-using LedgerCore.Domain.ValueObjects;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,31 +35,23 @@ namespace LedgerCore.Application.Features.Admin.Commands.ProvisionAgentFloat
                     $"Account {request.AgentAccountId} is not an AgentFloat.");
 
             // Build the 2-leg float-provisioning transfer
-            var transaction = new LedgerTransaction(
-                id: Guid.NewGuid(),
-                initiatedBy: request.AgentAccountId,
-                transactionType: TransactionType.Transfer,
-                channel: Channel.Internal,
-                description: $"Float provisioning for agent {request.AgentAccountId}"
-            );
+            var transaction = new LedgerCore.Domain.Entities.LedgerTransaction(Guid.NewGuid(), $"REF-{Guid.NewGuid():N}", LedgerCore.Domain.Enums.TransactionType.PeerToPeer, Guid.NewGuid().ToString());
 
-            // Leg 1: Debit SystemReserve
-            transaction.AddEntry(new LedgerEntry
-            {
-                AccountId = SystemAccountIds.SystemReserve,
-                Direction = EntryDirection.Debit,
-                Amount = request.Amount,
-                Currency = new CurrencyCode("ETB")
-            });
+            // Leg 1: Debit System Reserve
+            transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
+                Guid.NewGuid(),
+                transaction.Id,
+                LedgerCore.Domain.Constants.SystemAccountIds.SystemReserve,
+                -request.Amount,
+                LedgerCore.Domain.Enums.EntryDirection.Debit));
 
-            // Leg 2: Credit AgentFloat account
-            transaction.AddEntry(new LedgerEntry
-            {
-                AccountId = request.AgentAccountId,
-                Direction = EntryDirection.Credit,
-                Amount = request.Amount,
-                Currency = new CurrencyCode("ETB")
-            });
+            // Leg 2: Credit Agent Float
+            transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
+                Guid.NewGuid(),
+                transaction.Id,
+                request.AgentAccountId,
+                request.Amount,
+                LedgerCore.Domain.Enums.EntryDirection.Credit));
 
             transaction.Post();
 
