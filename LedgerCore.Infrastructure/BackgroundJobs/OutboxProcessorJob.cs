@@ -48,7 +48,7 @@ public sealed class OutboxProcessorJob : BackgroundService
         var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
 
         var messages = await dbContext.OutboxMessages
-            .Where(m => m.ProcessedOn == null)
+            .Where(m => m.ProcessedOnUtc == null)
             .OrderBy(m => m.OccurredOn) // Enforces absolute FIFO chronological execution
             .Take(20)
             .ToListAsync(cancellationToken);
@@ -69,7 +69,7 @@ public sealed class OutboxProcessorJob : BackgroundService
 
             await publisher.Publish(domainEvent, cancellationToken);
 
-            message.ProcessedOn = DateTimeOffset.UtcNow;
+            message.ProcessedOnUtc = DateTime.UtcNow;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);

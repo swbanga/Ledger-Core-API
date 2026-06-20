@@ -11,7 +11,7 @@ public sealed class OutboxMessage
     public DateTimeOffset OccurredOn { get; set; }
 
     [Column("ProcessedOn")]
-    public DateTimeOffset? ProcessedOnUtc { get; set; }
+    public DateTime? ProcessedOnUtc { get; set; }
 
     public string? Error { get; set; }
 }
