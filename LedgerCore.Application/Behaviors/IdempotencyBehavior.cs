@@ -2,7 +2,8 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using LedgerCore.Application.Interfaces;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace LedgerCore.Application.Behaviors;
 
@@ -14,22 +15,29 @@ public interface IIdempotentCommand<out TResponse> : IRequest<TResponse>
 public class IdempotencyBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IIdempotentCommand<TResponse>
 {
-    private readonly IIdempotencyService _idempotencyService;
+    private readonly IDistributedCache _cache;
 
-    public IdempotencyBehavior(IIdempotencyService idempotencyService)
+    public IdempotencyBehavior(IDistributedCache cache)
     {
-        _idempotencyService = idempotencyService;
+        _cache = cache;
     }
 
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
-        if (await _idempotencyService.RequestExistsAsync(request.IdempotencyKey))
+        var cacheKey = request.IdempotencyKey.ToString();
+        var cached = await _cache.GetStringAsync(cacheKey, cancellationToken);
+        if (cached != null)
         {
-            throw new LedgerCore.Application.Exceptions.IdempotencyException($"Idempotency check failed. Command {request.IdempotencyKey} has already been processed.");
+            return JsonSerializer.Deserialize<TResponse>(cached)!;
         }
 
-        await _idempotencyService.CreateRequestAsync(request.IdempotencyKey, typeof(TRequest).Name);
-
-        return await next();
+        var response = await next();
+        var serialized = JsonSerializer.Serialize(response);
+        var options = new DistributedCacheEntryOptions
+        {
+            AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(24)
+        };
+        await _cache.SetStringAsync(cacheKey, serialized, options, cancellationToken);
+        return response;
     }
 }

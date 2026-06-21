@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Testcontainers.SqlEdge;
 using Testcontainers.RabbitMq;
+using Testcontainers.Redis;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,6 +23,7 @@ public class SqlEdgeFixture : IAsyncLifetime
 {
     private SqlEdgeContainer _container = null!;
     private RabbitMqContainer _rabbitMqContainer = null!;
+    private RedisContainer _redisContainer = null!;
     private string _connectionString = null!;
     private IServiceProvider _serviceProvider = null!;
 
@@ -45,6 +47,12 @@ public class SqlEdgeFixture : IAsyncLifetime
 #pragma warning restore CS0618
         await _rabbitMqContainer.StartAsync();
 
+        // Start Redis for idempotency cache tests
+        _redisContainer = new RedisBuilder()
+            .WithImage("redis:7-alpine")
+            .Build();
+        await _redisContainer.StartAsync();
+
         // Build the service pipeline
         var services = new ServiceCollection();
         services.AddLogging();
@@ -52,7 +60,8 @@ public class SqlEdgeFixture : IAsyncLifetime
         var inMemorySettings = new Dictionary<string, string>
         {
             { "ConnectionStrings:LedgerCore", _connectionString },
-            { "ConnectionStrings:RabbitMq", _rabbitMqContainer.GetConnectionString() }
+            { "ConnectionStrings:RabbitMq", _rabbitMqContainer.GetConnectionString() },
+            { "ConnectionStrings:Redis", _redisContainer.GetConnectionString() }
         };
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(inMemorySettings!)
@@ -61,11 +70,6 @@ public class SqlEdgeFixture : IAsyncLifetime
 
         services.AddApplication();
         services.AddInfrastructure(configuration);
-
-        // Override any production Redis IDistributedCache with in-memory.
-        var redisDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Microsoft.Extensions.Caching.Distributed.IDistributedCache));
-        if (redisDescriptor != null) { services.Remove(redisDescriptor); }
-        services.AddDistributedMemoryCache();
 
         // Force weld: remove any existing DbContextOptions descriptor and register using the container's dynamic port.
         var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<LedgerDbContext>));
@@ -117,6 +121,10 @@ public class SqlEdgeFixture : IAsyncLifetime
         if (_rabbitMqContainer is not null)
         {
             await _rabbitMqContainer.DisposeAsync();
+        }
+        if (_redisContainer is not null)
+        {
+            await _redisContainer.DisposeAsync();
         }
         if (_container is not null)
         {

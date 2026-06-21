@@ -8,6 +8,8 @@ using LedgerCore.Infrastructure.Database;
 using LedgerCore.Infrastructure.Data.Interceptors;
 using LedgerCore.Infrastructure.BackgroundJobs;
 using MassTransit;
+using MediatR;
+using LedgerCore.Application.Behaviors;
 using LedgerCore.Infrastructure;
 
 namespace LedgerCore.Infrastructure;
@@ -40,6 +42,8 @@ public static class DependencyInjection
                 cfg.ConfigureEndpoints(context);
             });
         });
+
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LedgerCore.Application.Behaviors.IdempotencyBehavior<,>));
 
         return services;
     }
