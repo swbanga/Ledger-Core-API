@@ -18,6 +18,11 @@ public sealed class JwtProvider : IJwtProvider
     {
         _jwtSettings = jwtOptions.Value;
         _timeProvider = timeProvider;
+
+        if (string.IsNullOrEmpty(_jwtSettings.Secret) || _jwtSettings.Secret.Length < 32)
+        {
+            throw new InvalidOperationException("JWT secret must be at least 32 characters long.");
+        }
     }
 
     public string GenerateToken(Guid userId, string role)
@@ -37,7 +42,7 @@ public sealed class JwtProvider : IJwtProvider
             _jwtSettings.Audience,
             claims,
             null,
-            _timeProvider.GetUtcNow().AddMinutes(_jwtSettings.ExpirationTimeInMinutes).DateTime,
+            _timeProvider.GetUtcNow().AddMinutes(_jwtSettings.ExpirationTimeInMinutes).UtcDateTime,
             credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
