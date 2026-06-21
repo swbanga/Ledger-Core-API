@@ -235,8 +235,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
     private static string GenerateUniqueAccountNumber()
     {
-        var randomPart = Guid.NewGuid().ToString("N").Substring(0, 9);
-        return $"0{randomPart}";
+        return $"0{System.Random.Shared.Next(100000000, 999999999)}";
     }
 
     private static string GenerateUniqueReference(string prefix)
