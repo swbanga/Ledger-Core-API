@@ -16,6 +16,7 @@ using LedgerCore.Application.Contracts;
 using LedgerCore.Infrastructure.Caching;
 using LedgerCore.Infrastructure.Authentication;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options.ConfigurationExtensions;
 
 namespace LedgerCore.Infrastructure;
 
@@ -34,8 +35,12 @@ public static class DependencyInjection
         services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
-            var redisConnection = config.GetConnectionString("Redis");
-            return ConnectionMultiplexer.Connect(redisConnection);
+            var redisConn = config.GetConnectionString("Redis");
+            if (string.IsNullOrEmpty(redisConn))
+            {
+                throw new InvalidOperationException("FATAL: Redis connection string is missing.");
+            }
+            return ConnectionMultiplexer.Connect(redisConn);
         });
 
         services.AddSingleton<ICachingService, RedisCachingService>();
@@ -55,9 +60,8 @@ public static class DependencyInjection
             });
         });
 
-        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
         services.AddOptions<JwtSettings>()
-            .Bind(configuration.GetSection(JwtSettings.SectionName))
+            .BindConfiguration(JwtSettings.SectionName)
             .Validate(settings => !string.IsNullOrEmpty(settings.Secret) && settings.Secret.Length >= 32,
                       "JWT secret must be at least 32 characters and non‑empty.")
             .ValidateOnStart();
