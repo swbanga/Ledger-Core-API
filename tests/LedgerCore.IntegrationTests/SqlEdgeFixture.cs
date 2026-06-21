@@ -38,9 +38,6 @@ public class SqlEdgeFixture : IAsyncLifetime
         var services = new ServiceCollection();
         services.AddLogging();
 
-        // Substitute Redis distributed cache with in‑memory to avoid requiring a running Redis node.
-        services.AddDistributedMemoryCache();
-
         var inMemorySettings = new Dictionary<string, string>
         {
             { "ConnectionStrings:LedgerCore", _connectionString }
@@ -52,6 +49,11 @@ public class SqlEdgeFixture : IAsyncLifetime
 
         services.AddApplication();
         services.AddInfrastructure(configuration);
+
+        // Override any production Redis IDistributedCache with in-memory.
+        var redisDescriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Microsoft.Extensions.Caching.Distributed.IDistributedCache));
+        if (redisDescriptor != null) { services.Remove(redisDescriptor); }
+        services.AddDistributedMemoryCache();
 
         // Force weld: remove any existing DbContextOptions descriptor and register using the container's dynamic port.
         var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<LedgerDbContext>));
