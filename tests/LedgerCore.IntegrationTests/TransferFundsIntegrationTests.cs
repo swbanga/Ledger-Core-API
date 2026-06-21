@@ -250,7 +250,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = floatId,
             AccountNumber = AccountNumber.CreateSystemAccount("FLOAT"),
-            AccountType = AccountType.System
+            AccountType = LedgerCore.Domain.Enums.AccountType.SystemRevenue
         };
 
         context.Accounts.AddRange(sourceAccount, destinationAccount, floatAccount);
@@ -320,10 +320,10 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         var credits = await context.LedgerEntries
             .Where(e => e.AccountId == sourceId && e.Direction == EntryDirection.Credit)
-            .SumAsync(e => Math.Abs(e.Amount));
+            .SumAsync(e => Math.Abs(e.Value.Amount));
         var debits = await context.LedgerEntries
             .Where(e => e.AccountId == sourceId && e.Direction == EntryDirection.Debit)
-            .SumAsync(e => Math.Abs(e.Amount));
+            .SumAsync(e => Math.Abs(e.Value.Amount));
         Assert.Equal(0m, credits - debits);
         Assert.True(succeeded == 1 && failedOrConflict >= 9, $"Succeeded={succeeded}, Failures/Conflicts={failedOrConflict}");
     }
