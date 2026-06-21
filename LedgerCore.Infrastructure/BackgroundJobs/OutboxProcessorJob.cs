@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
-using MediatR;
+using MassTransit;
 using LedgerCore.Infrastructure.Database;
 using LedgerCore.Domain.Events;
 
@@ -45,7 +45,7 @@ public sealed class OutboxProcessorJob : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
-        var publisher = scope.ServiceProvider.GetRequiredService<IPublisher>();
+        var publishEndpoint = scope.ServiceProvider.GetRequiredService<IPublishEndpoint>();
 
         var messages = await dbContext.OutboxMessages
             .Where(m => m.ProcessedOnUtc == null)
@@ -67,7 +67,7 @@ public sealed class OutboxProcessorJob : BackgroundService
                 continue;
             }
 
-            await publisher.Publish(domainEvent, cancellationToken);
+            await publishEndpoint.Publish((object)domainEvent, cancellationToken);
 
             message.ProcessedOnUtc = DateTime.UtcNow;
         }

@@ -3,6 +3,8 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Testcontainers.SqlEdge;
+using Testcontainers.RabbitMq;
+using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +21,7 @@ namespace LedgerCore.IntegrationTests;
 public class SqlEdgeFixture : IAsyncLifetime
 {
     private SqlEdgeContainer _container = null!;
+    private RabbitMqContainer _rabbitMqContainer = null!;
     private string _connectionString = null!;
     private IServiceProvider _serviceProvider = null!;
 
@@ -34,13 +37,20 @@ public class SqlEdgeFixture : IAsyncLifetime
 
         _connectionString = _container.GetConnectionString() + ";Database=LedgerIntegrationTest";
 
+        // Start RabbitMQ for MassTransit tests
+        _rabbitMqContainer = new RabbitMqBuilder()
+            .WithImage("rabbitmq:3-management")
+            .Build();
+        await _rabbitMqContainer.StartAsync();
+
         // Build the service pipeline
         var services = new ServiceCollection();
         services.AddLogging();
 
         var inMemorySettings = new Dictionary<string, string>
         {
-            { "ConnectionStrings:LedgerCore", _connectionString }
+            { "ConnectionStrings:LedgerCore", _connectionString },
+            { "ConnectionStrings:RabbitMq", _rabbitMqContainer.GetConnectionString() }
         };
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(inMemorySettings!)
@@ -71,6 +81,9 @@ public class SqlEdgeFixture : IAsyncLifetime
 
         _serviceProvider = services.BuildServiceProvider();
 
+        var busControl = _serviceProvider.GetRequiredService<IBusControl>();
+        await busControl.StartAsync();
+
         // Physical schema burn
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
@@ -90,6 +103,19 @@ public class SqlEdgeFixture : IAsyncLifetime
 
     public async Task DisposeAsync()
     {
+        if (_serviceProvider is not null)
+        {
+            var busControl = _serviceProvider.GetService<IBusControl>();
+            if (busControl is not null)
+            {
+                await busControl.StopAsync();
+            }
+        }
+
+        if (_rabbitMqContainer is not null)
+        {
+            await _rabbitMqContainer.DisposeAsync();
+        }
         if (_container is not null)
         {
             await _container.DisposeAsync();

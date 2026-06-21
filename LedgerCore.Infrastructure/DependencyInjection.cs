@@ -7,6 +7,7 @@ using LedgerCore.Application.Data;
 using LedgerCore.Infrastructure.Database;
 using LedgerCore.Infrastructure.Data.Interceptors;
 using LedgerCore.Infrastructure.BackgroundJobs;
+using MassTransit;
 
 namespace LedgerCore.Infrastructure;
 
@@ -26,6 +27,14 @@ public static class DependencyInjection
         {
             options.Configuration = configuration.GetConnectionString("Redis");
             options.InstanceName = "LedgerCore_";
+        });
+
+        services.AddMassTransit(x =>
+        {
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                cfg.Host(configuration.GetConnectionString("RabbitMq") ?? "rabbitmq://localhost");
+            });
         });
 
         return services;
