@@ -250,6 +250,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         context.Accounts.AddRange(sourceAccount, destinationAccount);
 
+        // Seed exactly $100 to the source account, isolating from any global seed data
         var openingAudit = new AuditMetadata(reqCtx.GetUserId(), reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
         var openingTx = new LedgerTransaction(
             Guid.NewGuid(),
@@ -273,41 +274,48 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         int other = 0;
         var lockObj = new object();
 
-        var tasks = new List<Task>();
-        for (int i = 0; i < 10; i++)
+        var parallelOptions = new ParallelOptions
         {
-            tasks.Add(Task.Run(async () =>
-            {
-                await using var scope = _fixture.Services.CreateAsyncScope();
-                var scopedSender = scope.ServiceProvider.GetRequiredService<ISender>();
-                var cmd = new TransferFundsCommand(sourceId, destId, 100m, "USD", Guid.NewGuid());
-                try
-                {
-                    await scopedSender.Send(cmd);
-                    lock (lockObj) { succeeded++; }
-                }
-                catch (Exception ex)
-                {
-                    lock (lockObj)
-                    {
-                        if (ex is InvalidOperationException && ex.Message.Contains("insufficient", StringComparison.OrdinalIgnoreCase))
-                            insufficient++;
-                        else if (ex is DbUpdateConcurrencyException)
-                            concurrency++;
-                        else
-                            other++;
-                    }
-                }
-            }));
-        }
+            MaxDegreeOfParallelism = Environment.ProcessorCount
+        };
 
-        await Task.WhenAll(tasks);
+        var range = Enumerable.Range(0, 10);
+        await Parallel.ForEachAsync(range, parallelOptions, async (i, ct) =>
+        {
+            await using var scope = _fixture.Services.CreateAsyncScope();
+            var scopedSender = scope.ServiceProvider.GetRequiredService<MediatR.ISender>();
+            // Each iteration MUST use a new IdempotencyKey to bypass Redis cache
+            var idempotencyKey = Guid.NewGuid();
+            var cmd = new TransferFundsCommand(sourceId, destId, 100m, "USD", idempotencyKey);
+            try
+            {
+                await scopedSender.Send(cmd);
+                lock (lockObj) { succeeded++; }
+            }
+            catch (InvalidOperationException ex) when (
+                ex.Message.Contains("insufficient", StringComparison.OrdinalIgnoreCase))
+            {
+                lock (lockObj) { insufficient++; }
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                lock (lockObj) { concurrency++; }
+            }
+            catch (InsufficientFundsException)
+            {
+                lock (lockObj) { insufficient++; }
+            }
+            catch (Exception)
+            {
+                lock (lockObj) { other++; }
+            }
+        });
 
         Assert.Equal(0, other);
         Assert.Equal(1, succeeded);
         Assert.Equal(9, insufficient + concurrency);
 
-        // Verify final balance $0
+        // Verify final balance on the isolated account is exactly $0
         await using var assertScope = _fixture.Services.CreateAsyncScope();
         var assertContext = assertScope.ServiceProvider.GetRequiredService<LedgerDbContext>();
         var sourceEntries = await assertContext.LedgerEntries
