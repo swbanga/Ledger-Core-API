@@ -73,7 +73,7 @@ builder.Services.AddOpenTelemetry()
     .WithTracing(tracing =>
     {
         tracing.AddAspNetCoreInstrumentation();
-        tracing.AddEntityFrameworkCoreInstrumentation(options => options.SetDbStatementForText = true);
+        tracing.AddEntityFrameworkCoreInstrumentation();
         tracing.AddSource("MassTransit");
         tracing.AddOtlpExporter(options => options.Endpoint = new Uri("http://localhost:4317"));
     });
