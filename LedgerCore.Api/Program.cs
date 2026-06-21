@@ -13,6 +13,8 @@ using LedgerCore.Infrastructure;
 using Serilog;
 using Serilog.Extensions.Hosting;
 using Serilog.Formatting.Compact;
+using OpenTelemetry;
+using OpenTelemetry.Trace;
 
 Serilog.Log.Logger = new Serilog.LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -21,12 +23,12 @@ Serilog.Log.Logger = new Serilog.LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseSerilog((context, services, configuration) => configuration
+builder.Host.UseSerilog((context, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
-    .ReadFrom.Services(services)
     .Enrich.FromLogContext()
-    .Enrich.WithProperty("Application", "LedgerCore")
-    .WriteTo.Console(new Serilog.Formatting.Compact.CompactJsonFormatter()));
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .WriteTo.Console());
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -65,6 +67,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing =>
+    {
+        tracing.AddAspNetCoreInstrumentation();
+        tracing.AddEntityFrameworkCoreInstrumentation(options => options.SetDbStatementForText = true);
+        tracing.AddSource("MassTransit");
+        tracing.AddOtlpExporter(options => options.Endpoint = new Uri("http://localhost:4317"));
+    });
 
 builder.Services.AddApplication();
 
