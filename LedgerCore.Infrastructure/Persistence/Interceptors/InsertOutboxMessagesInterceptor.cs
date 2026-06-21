@@ -53,7 +53,7 @@ public sealed class InsertOutboxMessagesInterceptor : SaveChangesInterceptor
                 Id = Guid.NewGuid(),
                 OccurredOn = DateTime.UtcNow,
                 Type = domainEvent.GetType().AssemblyQualifiedName!,
-                Data = JsonSerializer.Serialize(domainEvent, domainEvent.GetType(), new JsonSerializerOptions())
+                Content = JsonSerializer.Serialize(domainEvent, domainEvent.GetType(), new JsonSerializerOptions())
             };
 
             context.Add(outboxMessage);
