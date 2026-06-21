@@ -36,7 +36,8 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
                 AccountNumber = AccountNumber.CreateSystemAccount("0000000001"),
                 AccountType = AccountType.Suspense,
                 KycTier = KycTier.Tier4,
-                RowVersion = new byte[8]
+                RowVersion = new byte[8],
+                LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new
             {
@@ -44,7 +45,8 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
                 AccountNumber = AccountNumber.CreateSystemAccount("0000000002"),
                 AccountType = AccountType.TaxLiability,
                 KycTier = KycTier.Tier4,
-                RowVersion = new byte[8]
+                RowVersion = new byte[8],
+                LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new
             {
@@ -52,7 +54,8 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
                 AccountNumber = AccountNumber.CreateSystemAccount("0000000003"),
                 AccountType = AccountType.SystemRevenue,
                 KycTier = KycTier.Tier4,
-                RowVersion = new byte[8]
+                RowVersion = new byte[8],
+                LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new
             {
@@ -60,7 +63,8 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
                 AccountNumber = AccountNumber.CreateSystemAccount("0000000004"),
                 AccountType = AccountType.Settlement,
                 KycTier = KycTier.Tier4,
-                RowVersion = new byte[8]
+                RowVersion = new byte[8],
+                LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
             new
             {
@@ -68,7 +72,8 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
                 AccountNumber = AccountNumber.CreateSystemAccount("0000000005"),
                 AccountType = AccountType.Reserve,
                 KycTier = KycTier.Tier4,
-                RowVersion = new byte[8]
+                RowVersion = new byte[8],
+                LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }
         );
     }
