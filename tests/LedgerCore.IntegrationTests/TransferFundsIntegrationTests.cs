@@ -14,6 +14,7 @@ using LedgerCore.Infrastructure.Database;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Generic;
 using Xunit;
 
 namespace LedgerCore.IntegrationTests;
@@ -218,6 +219,103 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         // Act & Assert
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sender.Send(command, CancellationToken.None));
         Assert.Contains("KYC", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task TransferFunds_ShouldPreventOverdraft_UnderHighConcurrency_WhenOccTriggers()
+    {
+        // Arrange
+        await using var outerScope = _fixture.Services.CreateAsyncScope();
+        var context = outerScope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var reqCtx = outerScope.ServiceProvider.GetRequiredService<IRequestContext>();
+
+        var sourceId = Guid.NewGuid();
+        var destId = Guid.NewGuid();
+
+        var sourceAccountNumber = GenerateUniqueAccountNumber();
+        var destAccountNumber = GenerateUniqueAccountNumber();
+
+        var sourceAccount = new Account
+        {
+            Id = sourceId,
+            AccountNumber = AccountNumber.CreateUserAccount(sourceAccountNumber),
+            AccountType = AccountType.User
+        };
+        var destinationAccount = new Account
+        {
+            Id = destId,
+            AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
+            AccountType = AccountType.User
+        };
+
+        context.Accounts.AddRange(sourceAccount, destinationAccount);
+
+        var openingAudit = new AuditMetadata(reqCtx.GetUserId(), reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
+        var openingTx = new LedgerTransaction(
+            Guid.NewGuid(),
+            GenerateUniqueReference("LOAD"),
+            TransactionType.PeerToPeer,
+            Guid.NewGuid().ToString(),
+            openingAudit);
+        context.LedgerTransactions.Add(openingTx);
+        context.LedgerEntries.Add(new LedgerEntry(
+            Guid.NewGuid(),
+            openingTx.Id,
+            sourceId,
+            new Money(100m, "USD"),
+            EntryDirection.Credit));
+
+        await context.SaveChangesAsync();
+
+        int succeeded = 0;
+        int insufficient = 0;
+        int concurrency = 0;
+        int other = 0;
+        var lockObj = new object();
+
+        var tasks = new List<Task>();
+        for (int i = 0; i < 10; i++)
+        {
+            tasks.Add(Task.Run(async () =>
+            {
+                await using var scope = _fixture.Services.CreateAsyncScope();
+                var scopedSender = scope.ServiceProvider.GetRequiredService<ISender>();
+                var cmd = new TransferFundsCommand(sourceId, destId, 100m, "USD", Guid.NewGuid());
+                try
+                {
+                    await scopedSender.Send(cmd);
+                    lock (lockObj) { succeeded++; }
+                }
+                catch (Exception ex)
+                {
+                    lock (lockObj)
+                    {
+                        if (ex is InvalidOperationException && ex.Message.Contains("insufficient", StringComparison.OrdinalIgnoreCase))
+                            insufficient++;
+                        else if (ex is DbUpdateConcurrencyException)
+                            concurrency++;
+                        else
+                            other++;
+                    }
+                }
+            }));
+        }
+
+        await Task.WhenAll(tasks);
+
+        Assert.Equal(0, other);
+        Assert.Equal(1, succeeded);
+        Assert.Equal(9, insufficient + concurrency);
+
+        // Verify final balance $0
+        await using var assertScope = _fixture.Services.CreateAsyncScope();
+        var assertContext = assertScope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var sourceEntries = await assertContext.LedgerEntries
+            .Where(e => e.AccountId == sourceId)
+            .ToListAsync();
+        var balance = sourceEntries.Sum(
+            e => e.Direction == EntryDirection.Credit ? e.Value.Amount : -e.Value.Amount);
+        Assert.Equal(0m, balance);
     }
 
     private static string GenerateUniqueAccountNumber()
