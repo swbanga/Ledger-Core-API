@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using LedgerCore.Application;
 using LedgerCore.Application.Contracts;
+using LedgerCore.Application.Interfaces;
 using LedgerCore.Infrastructure;
 using LedgerCore.Infrastructure.Database;
 using Xunit;
@@ -62,7 +63,9 @@ public class SqlEdgeFixture : IAsyncLifetime
         services.AddSingleton(TimeProvider.System);
 
         // Override the request context with the testing fake.
-        services.AddScoped<IRequestContext, FakeRequestContext>();
+        services.AddTransient<IRequestContext, FakeRequestContext>();
+        // Bypass idempotency check entirely for integration tests.
+        services.AddTransient<IIdempotencyService, FakeIdempotencyService>();
 
         _serviceProvider = services.BuildServiceProvider();
 
@@ -99,5 +102,11 @@ internal sealed class FakeRequestContext : IRequestContext
 
     public string GetIpAddress() => "127.0.0.1";
 
-    public string GetDeviceId() => "test-device";
+    public string GetDeviceId() => "TEST-DEVICE";
+}
+
+internal sealed class FakeIdempotencyService : IIdempotencyService
+{
+    public Task<bool> RequestExistsAsync(Guid idempotencyKey) => Task.FromResult(false);
+    public Task CreateRequestAsync(Guid idempotencyKey, string commandName) => Task.CompletedTask;
 }
