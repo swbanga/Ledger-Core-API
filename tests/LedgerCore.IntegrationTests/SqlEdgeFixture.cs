@@ -38,8 +38,11 @@ public class SqlEdgeFixture : IAsyncLifetime
         _connectionString = _container.GetConnectionString() + ";Database=LedgerIntegrationTest";
 
         // Start RabbitMQ for MassTransit tests
-        _rabbitMqContainer = new RabbitMqBuilder("rabbitmq:3-management")
+#pragma warning disable CS0618
+        _rabbitMqContainer = new RabbitMqBuilder()
+            .WithImage("rabbitmq:3-management")
             .Build();
+#pragma warning restore CS0618
         await _rabbitMqContainer.StartAsync();
 
         // Build the service pipeline
