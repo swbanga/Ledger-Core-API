@@ -34,8 +34,6 @@ public static class DependencyInjection
 
         services.AddMassTransit(x =>
         {
-            x.AddConsumer<Projections.BalanceProjectionConsumer>();
-
             x.UsingRabbitMq((context, cfg) =>
             {
                 cfg.Host(configuration.GetConnectionString("RabbitMq") ?? "rabbitmq://localhost");
