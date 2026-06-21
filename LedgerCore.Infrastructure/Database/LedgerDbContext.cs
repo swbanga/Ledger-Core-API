@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using LedgerCore.Application.Data;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Projections;
+using LedgerCore.Domain.ReadModels;
 using LedgerCore.Infrastructure.Outbox;
 
 namespace LedgerCore.Infrastructure.Database;
@@ -16,6 +17,7 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
     public DbSet<LedgerTransaction> LedgerTransactions { get; set; }
     public DbSet<LedgerEntry> LedgerEntries { get; set; }
     public DbSet<AccountBalance> AccountBalances { get; set; }
+    public DbSet<AccountBalanceState> AccountBalanceStates { get; set; }
     public DbSet<OutboxMessage> OutboxMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
