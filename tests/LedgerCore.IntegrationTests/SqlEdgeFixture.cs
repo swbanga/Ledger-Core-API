@@ -38,8 +38,7 @@ public class SqlEdgeFixture : IAsyncLifetime
         _connectionString = _container.GetConnectionString() + ";Database=LedgerIntegrationTest";
 
         // Start RabbitMQ for MassTransit tests
-        _rabbitMqContainer = new RabbitMqBuilder()
-            .WithImage("rabbitmq:3-management")
+        _rabbitMqContainer = new RabbitMqBuilder("rabbitmq:3-management")
             .Build();
         await _rabbitMqContainer.StartAsync();
 
