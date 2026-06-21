@@ -14,6 +14,8 @@ using Serilog;
 using Serilog.Extensions.Hosting;
 using Serilog.Formatting.Compact;
 using OpenTelemetry;
+using OpenTelemetry.Instrumentation.AspNetCore;
+using OpenTelemetry.Instrumentation.EntityFrameworkCore;
 using OpenTelemetry.Trace;
 
 Serilog.Log.Logger = new Serilog.LoggerConfiguration()
