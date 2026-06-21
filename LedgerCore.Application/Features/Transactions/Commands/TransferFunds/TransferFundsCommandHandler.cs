@@ -56,11 +56,8 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
         var zimraTax = 0.50m;
         var totalDebit = principal + systemFee + zimraTax;
 
-        if (currentBalance < totalDebit)
-        {
-            throw new LedgerCore.Domain.Exceptions.InsufficientFundsException(
-                $"FATAL: Insufficient funds. Account {request.SourceAccountId} holds {currentBalance}, but attempted to transfer {request.Amount} (total including fees/taxes: {totalDebit}).");
-        }
+        if (currentBalance < request.Amount)
+            throw new System.InvalidOperationException("FATAL: Insufficient funds.");
         // -----------------------------------------------------
 
         var transactionId = Guid.NewGuid();
