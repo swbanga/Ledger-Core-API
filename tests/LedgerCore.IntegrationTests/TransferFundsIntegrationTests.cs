@@ -259,7 +259,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
             Guid.NewGuid(),
             depositTx.Id,
             sourceId,
-            new Money(100m, "USD"),
+            new Money(102m, "USD"),
             EntryDirection.Credit));
         await context.SaveChangesAsync();
 
