@@ -81,15 +81,31 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
 
         var currency = request.Currency;
 
-        // 1. Leg 1: Source Debit (Principal + Fee + Tax)
+        // 1. Leg 1: Source Principal Debit (sender)
         transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
             Guid.NewGuid(), 
             transaction.Id, 
             request.SourceAccountId, 
-            new Money(-totalDebit, currency), 
+            new Money(-principal, currency), 
             LedgerCore.Domain.Enums.EntryDirection.Debit));
 
-        // 2. Leg 2: Destination Credit (Principal)
+        // 2. Leg 2: Source Fee Debit (sender)
+        transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
+            Guid.NewGuid(), 
+            transaction.Id, 
+            request.SourceAccountId, 
+            new Money(-systemFee, currency), 
+            LedgerCore.Domain.Enums.EntryDirection.Debit));
+
+        // 3. Leg 3: Source Tax Debit (sender) – IMTT deduction
+        transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
+            Guid.NewGuid(), 
+            transaction.Id, 
+            request.SourceAccountId, 
+            new Money(-zimraTax, currency), 
+            LedgerCore.Domain.Enums.EntryDirection.Debit));
+
+        // 4. Leg 4: Destination Credit (recipient)
         transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
             Guid.NewGuid(), 
             transaction.Id, 
@@ -97,7 +113,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             new Money(principal, currency), 
             LedgerCore.Domain.Enums.EntryDirection.Credit));
 
-        // 3. Leg 3: System Revenue Credit (Platform Fee)
+        // 5. Leg 5: System Revenue Credit (Platform Fee)
         transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
             Guid.NewGuid(), 
             transaction.Id, 
@@ -105,7 +121,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             new Money(systemFee, currency), 
             LedgerCore.Domain.Enums.EntryDirection.Credit));
 
-        // 4. Leg 4: ZIMRA Tax Liability Credit (IMTT)
+        // 6. Leg 6: ZIMRA Tax Liability Credit (IMTT)
         transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
             Guid.NewGuid(), 
             transaction.Id, 
