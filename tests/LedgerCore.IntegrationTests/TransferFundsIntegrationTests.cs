@@ -232,4 +232,15 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var txCount = await verifyContext.LedgerTransactions.CountAsync();
         Assert.Equal(1, txCount);
     }
+
+    private static string GenerateUniqueAccountNumber()
+    {
+        var randomPart = Guid.NewGuid().ToString("N").Substring(0, 9);
+        return $"0{randomPart}";
+    }
+
+    private static string GenerateUniqueReference(string prefix)
+    {
+        return $"{prefix}-{Guid.NewGuid():N}";
+    }
 }
