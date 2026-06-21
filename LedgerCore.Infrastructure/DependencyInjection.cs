@@ -16,7 +16,6 @@ using LedgerCore.Application.Contracts;
 using LedgerCore.Infrastructure.Caching;
 using LedgerCore.Infrastructure.Authentication;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Options.ConfigurationExtensions;
 
 namespace LedgerCore.Infrastructure;
 
