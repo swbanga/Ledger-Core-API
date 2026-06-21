@@ -232,6 +232,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         var sourceId = Guid.NewGuid();
         var destId = Guid.NewGuid();
+        var floatId = Guid.NewGuid();
 
         var sourceAccount = new Account
         {
@@ -245,7 +246,14 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
             AccountNumber = AccountNumber.CreateUserAccount("0999999992"),
             AccountType = AccountType.User
         };
-        context.Accounts.AddRange(sourceAccount, destinationAccount);
+        var floatAccount = new Account
+        {
+            Id = floatId,
+            AccountNumber = AccountNumber.CreateSystemAccount("FLOAT"),
+            AccountType = AccountType.System
+        };
+
+        context.Accounts.AddRange(sourceAccount, destinationAccount, floatAccount);
 
         var audit = new AuditMetadata(reqCtx.GetUserId(), reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
         var depositTx = new LedgerTransaction(
@@ -254,13 +262,27 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
             TransactionType.PeerToPeer,
             Guid.NewGuid().ToString(),
             audit);
-        context.LedgerTransactions.Add(depositTx);
-        context.LedgerEntries.Add(new LedgerEntry(
+
+        var creditEntry = new LedgerEntry(
             Guid.NewGuid(),
             depositTx.Id,
             sourceId,
             new Money(102m, "USD"),
-            EntryDirection.Credit));
+            EntryDirection.Credit);
+        var debitEntry = new LedgerEntry(
+            Guid.NewGuid(),
+            depositTx.Id,
+            floatId,
+            new Money(102m, "USD"),
+            EntryDirection.Debit);
+
+        depositTx.AddEntry(creditEntry);
+        depositTx.AddEntry(debitEntry);
+        depositTx.Post();
+
+        context.LedgerTransactions.Add(depositTx);
+        context.LedgerEntries.AddRange(creditEntry, debitEntry);
+
         await context.SaveChangesAsync();
 
         int succeeded = 0;
@@ -272,7 +294,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
             await using var innerScope = _fixture.Services.CreateAsyncScope();
             var scopedSender = innerScope.ServiceProvider.GetRequiredService<MediatR.ISender>();
             var idempotencyKey = Guid.NewGuid();
-            var command = new TransferFundsCommand(sourceId, destId, 100m, "USD", idempotencyKey);
+            var command = new TransferFundsCommand(sourceId, destId, 102m, "USD", idempotencyKey);
             try
             {
                 await scopedSender.Send(command, ct);
@@ -296,10 +318,13 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
             }
         });
 
-        var finalBalance = await context.LedgerEntries
-            .Where(e => e.AccountId == sourceId)
-            .SumAsync(e => e.Direction == EntryDirection.Credit ? e.Value.Amount : -e.Value.Amount);
-        Assert.Equal(0m, finalBalance);
+        var credits = await context.LedgerEntries
+            .Where(e => e.AccountId == sourceId && e.Direction == EntryDirection.Credit)
+            .SumAsync(e => Math.Abs(e.Amount));
+        var debits = await context.LedgerEntries
+            .Where(e => e.AccountId == sourceId && e.Direction == EntryDirection.Debit)
+            .SumAsync(e => Math.Abs(e.Amount));
+        Assert.Equal(0m, credits - debits);
         Assert.True(succeeded == 1 && failedOrConflict >= 9, $"Succeeded={succeeded}, Failures/Conflicts={failedOrConflict}");
     }
 
