@@ -26,17 +26,15 @@ public class LayerDependencyTests
     {
         var result = Types
             .InAssembly(DomainAssembly)
-            .ShouldNot()
-            .HaveDependencyOn(ApplicationNamespace)
+            .Should()
+            .NotHaveDependencyOn(ApplicationNamespace)
             .And()
-            .ShouldNot()
-            .HaveDependencyOn(InfrastructureNamespace)
+            .NotHaveDependencyOn(InfrastructureNamespace)
             .And()
-            .ShouldNot()
-            .HaveDependencyOn(ApiNamespace)
+            .NotHaveDependencyOn(ApiNamespace)
             .GetResult();
 
-        Assert.True(result.IsSuccessful, BuildFailureMessage(result));
+        Assert.True(result.IsSuccessful);
     }
 
     [Fact]
@@ -44,14 +42,13 @@ public class LayerDependencyTests
     {
         var result = Types
             .InAssembly(ApplicationAssembly)
-            .ShouldNot()
-            .HaveDependencyOn(InfrastructureNamespace)
+            .Should()
+            .NotHaveDependencyOn(InfrastructureNamespace)
             .And()
-            .ShouldNot()
-            .HaveDependencyOn(ApiNamespace)
+            .NotHaveDependencyOn(ApiNamespace)
             .GetResult();
 
-        Assert.True(result.IsSuccessful, BuildFailureMessage(result));
+        Assert.True(result.IsSuccessful);
     }
 
     [Fact]
@@ -59,21 +56,11 @@ public class LayerDependencyTests
     {
         var result = Types
             .InAssembly(InfrastructureAssembly)
-            .ShouldNot()
-            .HaveDependencyOn(ApiNamespace)
+            .Should()
+            .NotHaveDependencyOn(ApiNamespace)
             .GetResult();
 
-        Assert.True(result.IsSuccessful, BuildFailureMessage(result));
+        Assert.True(result.IsSuccessful);
     }
 
-    private static string BuildFailureMessage(object result)
-    {
-        dynamic archResult = result;
-        if (archResult.FailingTypeNames is { Count: > 0 })
-        {
-            return $"Dependency rule violation - failing types: {string.Join(", ", archResult.FailingTypeNames)}";
-        }
-
-        return "Dependency rule violation detected (no type details available).";
-    }
 }
