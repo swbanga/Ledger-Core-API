@@ -225,32 +225,32 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
     public async Task TransferFunds_ShouldPreventOverdraft_UnderHighConcurrency_WhenOccTriggers()
     {
         // Arrange
-        await using var outerScope = _fixture.Services.CreateAsyncScope();
-        var context = outerScope.ServiceProvider.GetRequiredService<LedgerDbContext>();
-        var reqCtx = outerScope.ServiceProvider.GetRequiredService<IRequestContext>();
+        await using var scope = _fixture.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var reqCtx = scope.ServiceProvider.GetRequiredService<IRequestContext>();
 
-        var sourceId = Guid.NewGuid();
-        var destId = Guid.NewGuid();
+        var isolatedSourceId = Guid.NewGuid();
+        var isolatedDestId = Guid.NewGuid();
 
         var sourceAccountNumber = GenerateUniqueAccountNumber();
         var destAccountNumber = GenerateUniqueAccountNumber();
 
         var sourceAccount = new Account
         {
-            Id = sourceId,
+            Id = isolatedSourceId,
             AccountNumber = AccountNumber.CreateUserAccount(sourceAccountNumber),
             AccountType = AccountType.User
         };
         var destinationAccount = new Account
         {
-            Id = destId,
+            Id = isolatedDestId,
             AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
             AccountType = AccountType.User
         };
 
-        context.Accounts.AddRange(sourceAccount, destinationAccount);
+        db.Accounts.AddRange(sourceAccount, destinationAccount);
 
-        // Seed exactly $100 to the source account, isolating from any global seed data
+        // Seed exactly $100
         var openingAudit = new AuditMetadata(reqCtx.GetUserId(), reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
         var openingTx = new LedgerTransaction(
             Guid.NewGuid(),
@@ -258,15 +258,15 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
             TransactionType.PeerToPeer,
             Guid.NewGuid().ToString(),
             openingAudit);
-        context.LedgerTransactions.Add(openingTx);
-        context.LedgerEntries.Add(new LedgerEntry(
+        db.LedgerTransactions.Add(openingTx);
+        db.LedgerEntries.Add(new LedgerEntry(
             Guid.NewGuid(),
             openingTx.Id,
-            sourceId,
+            isolatedSourceId,
             new Money(100m, "USD"),
             EntryDirection.Credit));
 
-        await context.SaveChangesAsync();
+        await db.SaveChangesAsync();
 
         int succeeded = 0;
         int insufficient = 0;
@@ -282,11 +282,11 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var range = Enumerable.Range(0, 10);
         await Parallel.ForEachAsync(range, parallelOptions, async (i, ct) =>
         {
-            await using var scope = _fixture.Services.CreateAsyncScope();
-            var scopedSender = scope.ServiceProvider.GetRequiredService<MediatR.ISender>();
+            await using var innerScope = _fixture.Services.CreateAsyncScope();
+            var scopedSender = innerScope.ServiceProvider.GetRequiredService<MediatR.ISender>();
             // Each iteration MUST use a new IdempotencyKey to bypass Redis cache
             var idempotencyKey = Guid.NewGuid();
-            var cmd = new TransferFundsCommand(sourceId, destId, 100m, "USD", idempotencyKey);
+            var cmd = new TransferFundsCommand(isolatedSourceId, isolatedDestId, 100m, "USD", idempotencyKey);
             try
             {
                 await scopedSender.Send(cmd);
@@ -315,11 +315,11 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         Assert.Equal(1, succeeded);
         Assert.Equal(9, insufficient + concurrency);
 
-        // Verify final balance on the isolated account is exactly $0
+        // Verify final balance is $0
         await using var assertScope = _fixture.Services.CreateAsyncScope();
-        var assertContext = assertScope.ServiceProvider.GetRequiredService<LedgerDbContext>();
-        var sourceEntries = await assertContext.LedgerEntries
-            .Where(e => e.AccountId == sourceId)
+        var assertDb = assertScope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var sourceEntries = await assertDb.LedgerEntries
+            .Where(e => e.AccountId == isolatedSourceId)
             .ToListAsync();
         var balance = sourceEntries.Sum(
             e => e.Direction == EntryDirection.Credit ? e.Value.Amount : -e.Value.Amount);
