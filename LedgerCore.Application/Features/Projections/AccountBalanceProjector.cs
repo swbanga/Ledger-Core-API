@@ -10,10 +10,11 @@ using LedgerCore.Domain.Events;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Projections;
 using LedgerCore.Application.Data; // Interface for your DbContext
+using LedgerCore.Application.Contracts;
 
 namespace LedgerCore.Application.Features.Projections;
 
-public class AccountBalanceProjector : INotificationHandler<TransactionPostedDomainEvent>
+public class AccountBalanceProjector : INotificationHandler<DomainEventNotification<TransactionPostedDomainEvent>>
 {
     private readonly IApplicationDbContext _context;
     private readonly IDistributedCache _cache;
@@ -24,11 +25,12 @@ public class AccountBalanceProjector : INotificationHandler<TransactionPostedDom
         _cache = cache;
     }
 
-    public async Task Handle(TransactionPostedDomainEvent notification, CancellationToken cancellationToken)
+    public async Task Handle(DomainEventNotification<TransactionPostedDomainEvent> notification, CancellationToken cancellationToken)
     {
+        var domainEvent = notification.DomainEvent;
         var balances = new Dictionary<Guid, AccountBalance>();
 
-        foreach (var entry in notification.Entries)
+        foreach (var entry in domainEvent.Entries)
         {
             if (!balances.TryGetValue(entry.AccountId, out var projection))
             {
