@@ -11,6 +11,11 @@ using MassTransit;
 using MediatR;
 using LedgerCore.Application.Behaviors;
 using LedgerCore.Infrastructure;
+using StackExchange.Redis;
+using LedgerCore.Application.Contracts;
+using LedgerCore.Infrastructure.Caching;
+using LedgerCore.Infrastructure.Authentication;
+using Microsoft.Extensions.Options;
 
 namespace LedgerCore.Infrastructure;
 
@@ -26,6 +31,15 @@ public static class DependencyInjection
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddHostedService<OutboxProcessorService>();
 
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var config = sp.GetRequiredService<IConfiguration>();
+            var redisConnection = config.GetConnectionString("Redis");
+            return ConnectionMultiplexer.Connect(redisConnection);
+        });
+
+        services.AddSingleton<ICachingService, RedisCachingService>();
+
         services.AddStackExchangeRedisCache(options =>
         {
             options.Configuration = configuration.GetConnectionString("Redis");
@@ -40,6 +54,13 @@ public static class DependencyInjection
                 cfg.ConfigureEndpoints(context);
             });
         });
+
+        services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
+        services.AddOptions<JwtSettings>()
+            .Bind(configuration.GetSection(JwtSettings.SectionName))
+            .Validate(settings => !string.IsNullOrEmpty(settings.Secret) && settings.Secret.Length >= 32,
+                      "JWT secret must be at least 32 characters and non‑empty.")
+            .ValidateOnStart();
 
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LedgerCore.Application.Behaviors.IdempotencyBehavior<,>));
 
