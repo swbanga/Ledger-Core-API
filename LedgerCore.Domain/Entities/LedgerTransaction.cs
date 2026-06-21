@@ -57,6 +57,9 @@ public class LedgerTransaction
         if (Status != TransactionStatus.Pending)
             throw new InvalidOperationException("Only pending transactions can be posted.");
 
+        if (_entries.Count < 2)
+            throw new InvalidOperationException("FATAL: Transaction must contain at least 2 entries.");
+
         if (_entries.Any(e => e.Value.Amount == 0))
             throw new InvalidOperationException("FATAL: Ghost entry detected. $0.00 entries are forbidden.");
 
