@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LedgerCore.Infrastructure.Migrations
 {
     [DbContext(typeof(LedgerDbContext))]
-    [Migration("20260620211758_Phase6_Stage2_AuditTrail")]
-    partial class Phase6_Stage2_AuditTrail
+    [Migration("20260621014835_Phase6_Titanium_Snapshot")]
+    partial class Phase6_Titanium_Snapshot
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -44,6 +44,9 @@ namespace LedgerCore.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime>("LastActivityUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -57,35 +60,48 @@ namespace LedgerCore.Infrastructure.Migrations
                     b.HasData(
                         new
                         {
-                            Id = new Guid("f0000000-0000-0000-0000-000000000001"),
-                            AccountNumber = "SYS-REVENUE",
-                            AccountType = "SystemRevenue",
-                            KycTier = "Tier4",
-                            RowVersion = new byte[0]
-                        },
-                        new
-                        {
-                            Id = new Guid("f0000000-0000-0000-0000-000000000002"),
-                            AccountNumber = "SYS-TAX-ZIMRA",
-                            AccountType = "TaxLiability",
-                            KycTier = "Tier4",
-                            RowVersion = new byte[0]
-                        },
-                        new
-                        {
-                            Id = new Guid("f0000000-0000-0000-0000-000000000003"),
-                            AccountNumber = "SYS-SETTLEMENT",
-                            AccountType = "Settlement",
-                            KycTier = "Tier4",
-                            RowVersion = new byte[0]
-                        },
-                        new
-                        {
-                            Id = new Guid("f0000000-0000-0000-0000-000000000004"),
-                            AccountNumber = "SYS-SUSPENSE",
+                            Id = new Guid("11111111-1111-1111-1111-111111111111"),
+                            AccountNumber = "0000000001",
                             AccountType = "Suspense",
                             KycTier = "Tier4",
-                            RowVersion = new byte[0]
+                            LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            RowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }
+                        },
+                        new
+                        {
+                            Id = new Guid("22222222-2222-2222-2222-222222222222"),
+                            AccountNumber = "0000000002",
+                            AccountType = "TaxLiability",
+                            KycTier = "Tier4",
+                            LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            RowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }
+                        },
+                        new
+                        {
+                            Id = new Guid("33333333-3333-3333-3333-333333333333"),
+                            AccountNumber = "0000000003",
+                            AccountType = "SystemRevenue",
+                            KycTier = "Tier4",
+                            LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            RowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }
+                        },
+                        new
+                        {
+                            Id = new Guid("44444444-4444-4444-4444-444444444444"),
+                            AccountNumber = "0000000004",
+                            AccountType = "Settlement",
+                            KycTier = "Tier4",
+                            LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            RowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }
+                        },
+                        new
+                        {
+                            Id = new Guid("55555555-5555-5555-5555-555555555555"),
+                            AccountNumber = "0000000005",
+                            AccountType = "Reserve",
+                            KycTier = "Tier4",
+                            LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            RowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }
                         });
                 });
 
@@ -175,6 +191,33 @@ namespace LedgerCore.Infrastructure.Migrations
                     b.ToTable("AccountBalances", (string)null);
                 });
 
+            modelBuilder.Entity("LedgerCore.Domain.ReadModels.AccountBalanceState", b =>
+                {
+                    b.Property<Guid>("AccountId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("CurrentBalance")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("decimal(19,4)");
+
+                    b.Property<Guid>("LastTransactionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("LastUpdatedUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.HasKey("AccountId");
+
+                    b.ToTable("AccountBalanceStates", (string)null);
+                });
+
             modelBuilder.Entity("LedgerCore.Infrastructure.Outbox.OutboxMessage", b =>
                 {
                     b.Property<Guid>("Id")
@@ -191,8 +234,9 @@ namespace LedgerCore.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("OccurredOn")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<DateTimeOffset?>("ProcessedOn")
-                        .HasColumnType("datetimeoffset");
+                    b.Property<DateTime?>("ProcessedOnUtc")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ProcessedOn");
 
                     b.Property<string>("Type")
                         .IsRequired()

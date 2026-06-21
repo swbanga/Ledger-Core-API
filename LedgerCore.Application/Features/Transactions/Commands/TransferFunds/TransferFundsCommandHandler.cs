@@ -17,18 +17,15 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
 {
     private readonly IApplicationDbContext _context;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly TimeProvider _timeProvider;
     private readonly IRequestContext _requestContext;
 
     public TransferFundsCommandHandler(
         IApplicationDbContext context,
         IUnitOfWork unitOfWork,
-        TimeProvider timeProvider,
         IRequestContext requestContext)
     {
         _context = context;
         _unitOfWork = unitOfWork;
-        _timeProvider = timeProvider;
         _requestContext = requestContext;
     }
 
@@ -40,78 +37,60 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
         var destinationAccount = await _context.Accounts
             .FirstOrDefaultAsync(a => a.Id == request.DestinationAccountId, cancellationToken);
 
-        if (sourceAccount is null)
-            throw new Exception($"Source account {request.SourceAccountId} not found.");
+        if (sourceAccount is null) throw new Exception("Source not found.");
+        if (destinationAccount is null) throw new Exception("Destination not found.");
 
-        if (destinationAccount is null)
-            throw new Exception($"Destination account {request.DestinationAccountId} not found.");
-
-        // --- NEW ENFORCEMENT: THE OVERDRAFT DEFENSE SHIELD ---
-        var currentBalance = await _context.LedgerEntries
-            .Where(e => e.AccountId == request.SourceAccountId)
+        // STRICT BALANCE CALCULATION (Credits - Debits)
+        var credits = await _context.LedgerEntries
+            .Where(e => e.AccountId == request.SourceAccountId && e.Direction == EntryDirection.Credit)
             .SumAsync(e => e.Value.Amount, cancellationToken);
+
+        var debits = await _context.LedgerEntries
+            .Where(e => e.AccountId == request.SourceAccountId && e.Direction == EntryDirection.Debit)
+            .SumAsync(e => Math.Abs(e.Value.Amount), cancellationToken);
+
+        var currentBalance = credits - debits;
 
         var principal = request.Amount;
         var systemFee = 1.50m;
         var zimraTax = 0.50m;
-        var totalDebit = principal + systemFee + zimraTax;
+        var feeAmount = systemFee + zimraTax;
 
-        if (currentBalance < request.Amount)
+        if (currentBalance < (principal + feeAmount))
             throw new System.InvalidOperationException("FATAL: Insufficient funds.");
-        // -----------------------------------------------------
 
-        // Mark the source account as modified to enforce optimistic concurrency
         sourceAccount.MarkActivity();
 
-        var transactionId = Guid.NewGuid();
+        var metadata = new AuditMetadata(
+            _requestContext.GetUserId(), 
+            _requestContext.GetIpAddress(), 
+            _requestContext.GetDeviceId());
 
-        // --------------------------------------------------------
-        // NEW STRICTLY CONSTRUCTED 4‑LEG ROUTING MATRIX USING DOMAIN ADDENTRY
-        // --------------------------------------------------------
-
-        var metadata = new AuditMetadata(_requestContext.GetUserId(), _requestContext.GetIpAddress(), _requestContext.GetDeviceId());
-
-        var transaction = new LedgerCore.Domain.Entities.LedgerTransaction(
-            transactionId,
+        var transaction = new LedgerTransaction(
+            Guid.NewGuid(),
             $"REF-{Guid.NewGuid():N}",
-            LedgerCore.Domain.Enums.TransactionType.PeerToPeer,
-            Guid.NewGuid().ToString(), // Generates a unique CorrelationId for distributed tracing
+            TransactionType.PeerToPeer,
+            Guid.NewGuid().ToString(),
             metadata
         );
 
-        var currency = request.Currency;
-        var feeAmount = systemFee + zimraTax;
+        // STRICT 4-LEG ROUTING MATRIX (DEBITS ARE NEGATIVE)
+        transaction.AddEntry(new LedgerEntry(
+            Guid.NewGuid(), transaction.Id, request.SourceAccountId,
+            new Money(-principal, request.Currency), EntryDirection.Debit));
 
-        transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
-            Guid.NewGuid(),
-            transaction.Id,
-            request.SourceAccountId,
-            new Money(-request.Amount, request.Currency),
-            LedgerCore.Domain.Enums.EntryDirection.Debit));
+        transaction.AddEntry(new LedgerEntry(
+            Guid.NewGuid(), transaction.Id, request.DestinationAccountId,
+            new Money(principal, request.Currency), EntryDirection.Credit));
 
-        transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
-            Guid.NewGuid(),
-            transaction.Id,
-            request.DestinationAccountId,
-            new Money(request.Amount, request.Currency),
-            LedgerCore.Domain.Enums.EntryDirection.Credit));
+        transaction.AddEntry(new LedgerEntry(
+            Guid.NewGuid(), transaction.Id, request.SourceAccountId,
+            new Money(-feeAmount, request.Currency), EntryDirection.Debit));
 
-        transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
-            Guid.NewGuid(),
-            transaction.Id,
-            request.SourceAccountId,
-            new Money(-feeAmount, request.Currency),
-            LedgerCore.Domain.Enums.EntryDirection.Debit));
+        transaction.AddEntry(new LedgerEntry(
+            Guid.NewGuid(), transaction.Id, Guid.Parse("33333333-3333-3333-3333-333333333333"),
+            new Money(feeAmount, request.Currency), EntryDirection.Credit));
 
-        transaction.AddEntry(new LedgerCore.Domain.Entities.LedgerEntry(
-            Guid.NewGuid(),
-            transaction.Id,
-            Guid.Parse("33333333-3333-3333-3333-333333333333"),
-            new Money(feeAmount, request.Currency),
-            LedgerCore.Domain.Enums.EntryDirection.Credit));
-
-        // The Absolute Mathematical Invariant
-        // Mathematically locks the transaction and transitions state to Posted
         transaction.Post(); 
 
         _context.LedgerTransactions.Add(transaction);
