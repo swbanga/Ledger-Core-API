@@ -4,6 +4,7 @@ using LedgerCore.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LedgerCore.Infrastructure.Migrations
 {
     [DbContext(typeof(LedgerDbContext))]
-    partial class LedgerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260620215806_Phase6_Stage4_OutboxProcessedColumn")]
+    partial class Phase6_Stage4_OutboxProcessedColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -41,9 +44,6 @@ namespace LedgerCore.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateTime>("LastActivityUtc")
-                        .HasColumnType("datetime2");
-
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -61,7 +61,6 @@ namespace LedgerCore.Infrastructure.Migrations
                             AccountNumber = "SYS-REVENUE",
                             AccountType = "SystemRevenue",
                             KycTier = "Tier4",
-                            LastActivityUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             RowVersion = new byte[0]
                         },
                         new
@@ -70,7 +69,6 @@ namespace LedgerCore.Infrastructure.Migrations
                             AccountNumber = "SYS-TAX-ZIMRA",
                             AccountType = "TaxLiability",
                             KycTier = "Tier4",
-                            LastActivityUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             RowVersion = new byte[0]
                         },
                         new
@@ -79,7 +77,6 @@ namespace LedgerCore.Infrastructure.Migrations
                             AccountNumber = "SYS-SETTLEMENT",
                             AccountType = "Settlement",
                             KycTier = "Tier4",
-                            LastActivityUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             RowVersion = new byte[0]
                         },
                         new
@@ -88,7 +85,6 @@ namespace LedgerCore.Infrastructure.Migrations
                             AccountNumber = "SYS-SUSPENSE",
                             AccountType = "Suspense",
                             KycTier = "Tier4",
-                            LastActivityUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             RowVersion = new byte[0]
                         });
                 });

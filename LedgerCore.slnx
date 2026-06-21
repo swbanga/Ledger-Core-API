@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/LedgerCore.ArchitectureTests/LedgerCore.ArchitectureTests.csproj" />
+    <Project Path="tests/LedgerCore.IntegrationTests/LedgerCore.IntegrationTests.csproj" />
+  </Folder>
   <Project Path="LedgerCore.Api/LedgerCore.Api.csproj" />
   <Project Path="LedgerCore.Application/LedgerCore.Application.csproj" />
   <Project Path="LedgerCore.Domain/LedgerCore.Domain.csproj" />
