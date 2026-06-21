@@ -273,7 +273,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
             Guid.NewGuid(),
             depositTx.Id,
             floatId,
-            new Money(102m, "USD"),
+            new Money(-102m, "USD"),
             EntryDirection.Debit);
 
         depositTx.AddEntry(creditEntry);
