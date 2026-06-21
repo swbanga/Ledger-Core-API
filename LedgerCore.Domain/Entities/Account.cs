@@ -11,6 +11,17 @@ public class Account
     public LedgerCore.Domain.Enums.AccountType AccountType { get; set; }
     public LedgerCore.Domain.Enums.KycTier KycTier { get; set; }
 
-    // Keep the Entity Framework RowVersion for optimistic concurrency
-    public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+    // Optimistic Concurrency Token (SQL Server RowVersion)
+    public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
+
+    // Required for concurrency token interaction
+    public DateTime LastActivityUtc { get; private set; }
+
+    /// <summary>
+    /// Marks the account as modified, forcing an UPDATE with WHERE RowVersion.
+    /// </summary>
+    public void MarkActivity()
+    {
+        LastActivityUtc = DateTime.UtcNow;
+    }
 }

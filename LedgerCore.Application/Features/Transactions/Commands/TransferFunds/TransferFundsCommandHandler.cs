@@ -60,6 +60,9 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             throw new System.InvalidOperationException("FATAL: Insufficient funds.");
         // -----------------------------------------------------
 
+        // Mark the source account as modified to enforce optimistic concurrency
+        sourceAccount.MarkActivity();
+
         var transactionId = Guid.NewGuid();
 
         // --------------------------------------------------------
