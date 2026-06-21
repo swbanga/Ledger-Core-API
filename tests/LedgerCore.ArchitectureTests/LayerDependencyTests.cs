@@ -1,10 +1,10 @@
+using NetArchTest.Rules;
 using System.Linq;
 using System.Reflection;
 using LedgerCore.Api.Controllers;
 using LedgerCore.Application.Authentication;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Infrastructure.Database;
-using NetArchTest.Rules;
 using Xunit;
 
 namespace LedgerCore.ArchitectureTests;
@@ -66,11 +66,12 @@ public class LayerDependencyTests
         Assert.True(result.IsSuccessful, BuildFailureMessage(result));
     }
 
-    private static string BuildFailureMessage(ArchTestResult result)
+    private static string BuildFailureMessage(object result)
     {
-        if (result.FailingTypeNames is { Count: > 0 })
+        dynamic archResult = result;
+        if (archResult.FailingTypeNames is { Count: > 0 })
         {
-            return $"Dependency rule violation - failing types: {string.Join(", ", result.FailingTypeNames)}";
+            return $"Dependency rule violation - failing types: {string.Join(", ", archResult.FailingTypeNames)}";
         }
 
         return "Dependency rule violation detected (no type details available).";
