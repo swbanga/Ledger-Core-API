@@ -8,7 +8,7 @@ using LedgerCore.Infrastructure.Database;
 using LedgerCore.Infrastructure.Data.Interceptors;
 using LedgerCore.Infrastructure.BackgroundJobs;
 using MassTransit;
-using LedgerCore.Application.Features.Projections;
+using LedgerCore.Infrastructure;
 
 namespace LedgerCore.Infrastructure;
 
@@ -32,7 +32,7 @@ public static class DependencyInjection
 
         services.AddMassTransit(x =>
         {
-            x.AddConsumer<BalanceProjectionConsumer>();
+            x.AddConsumer<Projections.BalanceProjectionConsumer>();
 
             x.UsingRabbitMq((context, cfg) =>
             {

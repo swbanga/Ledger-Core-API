@@ -8,7 +8,7 @@ public class AccountBalanceState
     public decimal CurrentBalance { get; set; }
     public Guid LastTransactionId { get; set; }
     public DateTime LastUpdatedUtc { get; set; }
-    public byte[] RowVersion { get; set; }
+    public byte[] RowVersion { get; private set; } = null!;
 
     public AccountBalanceState()
     {

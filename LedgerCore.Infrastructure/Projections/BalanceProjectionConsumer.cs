@@ -8,15 +8,14 @@ using LedgerCore.Domain.Events;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.ReadModels;
-using LedgerCore.Infrastructure.Database;
 
-namespace LedgerCore.Application.Features.Projections;
+namespace LedgerCore.Infrastructure.Projections;
 
 public sealed class BalanceProjectionConsumer : IConsumer<TransactionPostedDomainEvent>
 {
-    private readonly LedgerDbContext _dbContext;
+    private readonly LedgerCore.Infrastructure.Database.LedgerDbContext _dbContext;
 
-    public BalanceProjectionConsumer(LedgerDbContext dbContext)
+    public BalanceProjectionConsumer(LedgerCore.Infrastructure.Database.LedgerDbContext dbContext)
     {
         _dbContext = dbContext;
     }
