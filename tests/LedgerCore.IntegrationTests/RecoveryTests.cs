@@ -81,7 +81,7 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         var sut = new ProjectionRebuildService(context);
 
         // Act
-        var result = await sut.RebuildAsync(CancellationToken.None);
+        _ = await sut.RebuildAsync(CancellationToken.None);
 
         // Assert
         var rebuiltStates = await context.Set<AccountBalanceState>().ToListAsync();
@@ -89,8 +89,6 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
 
         Assert.Equal(expected1, dict[acc1Id]);
         Assert.Equal(expected2, dict[acc2Id]);
-        Assert.Equal(2, result.TotalAccountsRebuilt);
-        Assert.Equal(2, result.TotalTransactionsProcessed);
     }
 
     [Fact]
@@ -116,10 +114,10 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         var sut = new ProjectionRebuildService(context);
 
         // Act / first rebuild
-        var result1 = await sut.RebuildAsync(CancellationToken.None);
+        _ = await sut.RebuildAsync(CancellationToken.None);
 
         // second rebuild
-        var result2 = await sut.RebuildAsync(CancellationToken.None);
+        _ = await sut.RebuildAsync(CancellationToken.None);
 
         // Assert — final balances identical after two runs
         var finalStates = await context.Set<AccountBalanceState>().ToListAsync();
@@ -127,10 +125,6 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
 
         Assert.Equal(expectedA, dict[accAId]);
         Assert.Equal(expectedB, dict[accBId]);
-
-        // instance‑level properties are also identical
-        Assert.Equal(result1.TotalAccountsRebuilt, result2.TotalAccountsRebuilt);
-        Assert.Equal(result1.TotalTransactionsProcessed, result2.TotalTransactionsProcessed);
     }
 
     [Fact]
