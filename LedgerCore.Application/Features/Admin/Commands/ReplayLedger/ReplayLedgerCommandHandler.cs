@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using LedgerCore.Application.Data;
+using LedgerCore.Application.Contracts;
 using LedgerCore.Domain.Entities;
 using MediatR;
 using Microsoft.EntityFrameworkCore;

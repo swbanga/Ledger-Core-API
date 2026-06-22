@@ -5,7 +5,7 @@ using MediatR;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.ValueObjects;
-using LedgerCore.Application.Data;
+using LedgerCore.Application.Contracts;
 
 namespace LedgerCore.Application.Features.Accounts.Commands.CreateAccount;
 

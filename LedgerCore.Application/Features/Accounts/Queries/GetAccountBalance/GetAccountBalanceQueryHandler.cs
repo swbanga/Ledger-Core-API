@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using LedgerCore.Application.Data;
+using LedgerCore.Application.Contracts;
 
 namespace LedgerCore.Application.Features.Accounts.Queries.GetAccountBalance;
 

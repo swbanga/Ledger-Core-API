@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
-using LedgerCore.Application.Data;
+using LedgerCore.Application.Contracts;
 using LedgerCore.Domain.Projections;
 using LedgerCore.Application.Exceptions;
 
