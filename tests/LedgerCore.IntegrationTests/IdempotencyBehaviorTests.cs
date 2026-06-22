@@ -86,7 +86,7 @@ public class IdempotencyBehaviorTests
         var behavior = new IdempotencyBehavior<DummyRequest, string>(cache);
 
         _handlerRunCount = 0;
-        RequestHandlerDelegate<string> handler = (CancellationToken ct) =>
+        RequestHandlerDelegate<string> handler = () =>
         {
             Interlocked.Increment(ref _handlerRunCount);
             return Task.FromResult("result-abc");
@@ -122,7 +122,7 @@ public class IdempotencyBehaviorTests
         {
             tasks.Add(Task.Run(async () =>
             {
-                RequestHandlerDelegate<string> handler = (CancellationToken ct) =>
+                RequestHandlerDelegate<string> handler = () =>
                 {
                     Interlocked.Increment(ref _handlerInvocations);
                     return Task.FromResult("processed");
@@ -163,7 +163,7 @@ public class IdempotencyBehaviorTests
         var behavior = new IdempotencyBehavior<DummyRequest, string>(cache);
 
         _handlerInvocations = 0;
-        RequestHandlerDelegate<string> handler = (CancellationToken ct) =>
+        RequestHandlerDelegate<string> handler = () =>
         {
             Interlocked.Increment(ref _handlerInvocations);
             return Task.FromResult("first-result");
