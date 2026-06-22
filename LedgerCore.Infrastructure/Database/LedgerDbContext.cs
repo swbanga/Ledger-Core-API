@@ -56,6 +56,11 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
         await AccountBalances.AddAsync(accountBalance, cancellationToken);
     }
 
+    public void AddAccount(Account account)
+    {
+        Accounts.Add(account);
+    }
+
     public async Task<ITransactionHandle> BeginTransactionAsync(CancellationToken cancellationToken)
     {
         var transaction = await Database.BeginTransactionAsync(cancellationToken);

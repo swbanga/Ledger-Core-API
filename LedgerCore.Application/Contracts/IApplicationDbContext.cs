@@ -16,6 +16,7 @@ public interface IApplicationDbContext
     Task<AccountBalance?> FindAccountBalanceAsync(Guid accountId, CancellationToken cancellationToken);
     Task AddTransactionAsync(LedgerTransaction transaction, CancellationToken cancellationToken);
     Task AddAccountBalanceAsync(AccountBalance accountBalance, CancellationToken cancellationToken);
+    void AddAccount(Account account);
     Task<ITransactionHandle> BeginTransactionAsync(CancellationToken cancellationToken);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

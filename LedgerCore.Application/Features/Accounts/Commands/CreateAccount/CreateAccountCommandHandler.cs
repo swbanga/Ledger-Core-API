@@ -37,7 +37,7 @@ public sealed class CreateAccountCommandHandler : IRequestHandler<CreateAccountC
             KycTier = request.KycTier
         };
 
-        _context.Accounts.Add(account);
+        _context.AddAccount(account);
         await _context.SaveChangesAsync(cancellationToken);
 
         return account.Id;
