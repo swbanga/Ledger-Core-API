@@ -8,9 +8,9 @@ using LedgerCore.Application.Features.Admin.Commands.RebuildProjections;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.ReadModels;
-using LedgerCore.Domain.ValueObjects;
 using LedgerCore.Infrastructure.Database;
 using LedgerCore.Infrastructure.Services;
+using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace LedgerCore.IntegrationTests;
@@ -30,56 +30,31 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         return await Task.FromResult(_fixture.CreateDbContext());
     }
 
-    private async Task<Account> CreateAccountAsync(LedgerDbContext context, string number)
+    private async Task<Guid> CreateAccountAsync(LedgerDbContext context, string number)
     {
-        var account = new Account
-        {
-            Id = Guid.NewGuid(),
-            AccountNumber = AccountNumber.CreateUserAccount(number),
-            Type = AccountType.User
-        };
-        context.Accounts!.Add(account);
-        await context.SaveChangesAsync();
-        return account;
+        var id = Guid.NewGuid();
+        var sql = "INSERT INTO [Accounts] (Id, AccountNumber, Type) VALUES ({0}, {1}, {2})";
+        await context.Database.ExecuteSqlRawAsync(sql, id, number, (int)AccountType.User);
+        return id;
     }
 
     private async Task PostTransactionAsync(
         LedgerDbContext context,
-        Account source,
-        Account destination,
+        Guid sourceAccountId,
+        Guid destinationAccountId,
         decimal amount,
         string? reference = null)
     {
-        var tx = new LedgerTransaction
-        {
-            Id = Guid.NewGuid(),
-            Status = TransactionStatus.Posted,
-            TimestampUtc = DateTime.UtcNow
-        };
+        var txId = Guid.NewGuid();
+        var sqlTx = "INSERT INTO [LedgerTransactions] (Id, Status, TimestampUtc) VALUES ({0}, {1}, {2})";
+        await context.Database.ExecuteSqlRawAsync(sqlTx, txId, (int)TransactionStatus.Posted, DateTime.UtcNow);
 
-        var debitEntry = new LedgerEntry
-        {
-            Id = Guid.NewGuid(),
-            AccountId = source.Id,
-            Direction = EntryDirection.Debit,
-            Value = new MonetaryAmount(amount, "EUR"),
-            Description = reference ?? "recovery-test"
-        };
+        var debitId = Guid.NewGuid();
+        var sqlEntry = "INSERT INTO [LedgerEntries] (Id, LedgerTransactionId, AccountId, Direction, Value_Amount, Value_Currency, Description) VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})";
+        await context.Database.ExecuteSqlRawAsync(sqlEntry, debitId, txId, sourceAccountId, (int)EntryDirection.Debit, amount, "EUR", reference ?? "recovery-test");
 
-        var creditEntry = new LedgerEntry
-        {
-            Id = Guid.NewGuid(),
-            AccountId = destination.Id,
-            Direction = EntryDirection.Credit,
-            Value = new MonetaryAmount(amount, "EUR"),
-            Description = reference ?? "recovery-test"
-        };
-
-        tx.AddEntry(debitEntry);
-        tx.AddEntry(creditEntry);
-
-        context.LedgerTransactions!.Add(tx);
-        await context.SaveChangesAsync();
+        var creditId = Guid.NewGuid();
+        await context.Database.ExecuteSqlRawAsync(sqlEntry, creditId, txId, destinationAccountId, (int)EntryDirection.Credit, amount, "EUR", reference ?? "recovery-test");
     }
 
     [Fact]
@@ -87,11 +62,11 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
     {
         // Arrange
         await using var context = await GetDbContext();
-        var acc1 = await CreateAccountAsync(context, "REC0-001");
-        var acc2 = await CreateAccountAsync(context, "REC0-002");
+        var acc1Id = await CreateAccountAsync(context, "REC0-001");
+        var acc2Id = await CreateAccountAsync(context, "REC0-002");
 
-        await PostTransactionAsync(context, acc1, acc2, 100m);
-        await PostTransactionAsync(context, acc2, acc1, 30m);
+        await PostTransactionAsync(context, acc1Id, acc2Id, 100m);
+        await PostTransactionAsync(context, acc2Id, acc1Id, 30m);
 
         // expected balances after replay (starting from 0)
         const decimal expected1 = -70m; // -100 + 30
@@ -112,8 +87,8 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         var rebuiltStates = await context.Set<AccountBalanceState>().ToListAsync();
         var dict = rebuiltStates.ToDictionary(x => x.AccountId, x => x.CurrentBalance);
 
-        Assert.Equal(expected1, dict[acc1.Id]);
-        Assert.Equal(expected2, dict[acc2.Id]);
+        Assert.Equal(expected1, dict[acc1Id]);
+        Assert.Equal(expected2, dict[acc2Id]);
         Assert.Equal(2, result.TotalAccountsRebuilt);
         Assert.Equal(2, result.TotalTransactionsProcessed);
     }
@@ -123,11 +98,11 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
     {
         // Arrange
         await using var context = await GetDbContext();
-        var accA = await CreateAccountAsync(context, "REC0-003");
-        var accB = await CreateAccountAsync(context, "REC0-004");
+        var accAId = await CreateAccountAsync(context, "REC0-003");
+        var accBId = await CreateAccountAsync(context, "REC0-004");
 
-        await PostTransactionAsync(context, accA, accB, 200m);
-        await PostTransactionAsync(context, accB, accA, 50m);
+        await PostTransactionAsync(context, accAId, accBId, 200m);
+        await PostTransactionAsync(context, accBId, accAId, 50m);
 
         const decimal expectedA = -150m;
         const decimal expectedB = 150m;
@@ -150,8 +125,8 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         var finalStates = await context.Set<AccountBalanceState>().ToListAsync();
         var dict = finalStates.ToDictionary(x => x.AccountId, x => x.CurrentBalance);
 
-        Assert.Equal(expectedA, dict[accA.Id]);
-        Assert.Equal(expectedB, dict[accB.Id]);
+        Assert.Equal(expectedA, dict[accAId]);
+        Assert.Equal(expectedB, dict[accBId]);
 
         // instance‑level properties are also identical
         Assert.Equal(result1.TotalAccountsRebuilt, result2.TotalAccountsRebuilt);
@@ -163,11 +138,11 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
     {
         // Arrange
         await using var context = await GetDbContext();
-        var acc1 = await CreateAccountAsync(context, "REC0-005");
-        var acc2 = await CreateAccountAsync(context, "REC0-006");
+        var acc1Id = await CreateAccountAsync(context, "REC0-005");
+        var acc2Id = await CreateAccountAsync(context, "REC0-006");
 
-        await PostTransactionAsync(context, acc1, acc2, 500m);
-        await PostTransactionAsync(context, acc2, acc1, 250m);
+        await PostTransactionAsync(context, acc1Id, acc2Id, 500m);
+        await PostTransactionAsync(context, acc2Id, acc1Id, 250m);
 
         const decimal expected1 = -250m;
         const decimal expected2 = 250m;
@@ -189,7 +164,7 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         var finalStates = await context.Set<AccountBalanceState>().ToListAsync();
         var dict = finalStates.ToDictionary(x => x.AccountId, x => x.CurrentBalance);
 
-        Assert.Equal(expected1, dict[acc1.Id]);
-        Assert.Equal(expected2, dict[acc2.Id]);
+        Assert.Equal(expected1, dict[acc1Id]);
+        Assert.Equal(expected2, dict[acc2Id]);
     }
 }
