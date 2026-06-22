@@ -313,8 +313,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             await using var innerScope = _fixture.Services.CreateAsyncScope();
             var scopedSender = innerScope.ServiceProvider.GetRequiredService<MediatR.ISender>();
-            var idempotencyKey = Guid.NewGuid();
-            var command = new TransferFundsCommand(sourceId, destId, 102m, "USD", idempotencyKey);
+            var command = new TransferFundsCommand(sourceId, destId, 102m, "USD", Guid.NewGuid());
             try
             {
                 await scopedSender.Send(command, ct);

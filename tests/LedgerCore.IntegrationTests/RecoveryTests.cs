@@ -33,7 +33,7 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
     private async Task<Guid> CreateAccountAsync(LedgerDbContext context, string number, Guid ownerId)
     {
         var id = Guid.NewGuid();
-        var sql = "INSERT INTO [Accounts] (Id, AccountNumber, OwnerUserId) VALUES ({0}, {1}, {2})";
+        var sql = "INSERT INTO [Accounts] (Id, AccountNumber, OwnerUserId, LastActivityUtc) VALUES ({0}, {1}, {2}, GETUTCDATE())";
         await context.Database.ExecuteSqlRawAsync(sql, id, number, ownerId);
         return id;
     }
