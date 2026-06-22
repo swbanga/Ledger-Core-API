@@ -36,6 +36,7 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
                 AccountNumber = AccountNumber.CreateSystemAccount("0000000001"),
                 AccountType = AccountType.Suspense,
                 KycTier = KycTier.Tier4,
+                OwnerUserId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
                 RowVersion = new byte[8],
                 LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
@@ -45,6 +46,7 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
                 AccountNumber = AccountNumber.CreateSystemAccount("0000000002"),
                 AccountType = AccountType.TaxLiability,
                 KycTier = KycTier.Tier4,
+                OwnerUserId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
                 RowVersion = new byte[8],
                 LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
@@ -54,6 +56,7 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
                 AccountNumber = AccountNumber.CreateSystemAccount("0000000003"),
                 AccountType = AccountType.SystemRevenue,
                 KycTier = KycTier.Tier4,
+                OwnerUserId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
                 RowVersion = new byte[8],
                 LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
@@ -63,6 +66,7 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
                 AccountNumber = AccountNumber.CreateSystemAccount("0000000004"),
                 AccountType = AccountType.Settlement,
                 KycTier = KycTier.Tier4,
+                OwnerUserId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
                 RowVersion = new byte[8],
                 LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             },
@@ -72,6 +76,7 @@ public sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
                 AccountNumber = AccountNumber.CreateSystemAccount("0000000005"),
                 AccountType = AccountType.Reserve,
                 KycTier = KycTier.Tier4,
+                OwnerUserId = Guid.Parse("00000000-0000-0000-0000-000000000001"),
                 RowVersion = new byte[8],
                 LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
             }

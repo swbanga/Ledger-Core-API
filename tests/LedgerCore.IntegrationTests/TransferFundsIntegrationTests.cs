@@ -56,7 +56,8 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = Guid.NewGuid()
         };
 
         context.Accounts.AddRange(sourceAccount, destinationAccount);
@@ -121,7 +122,8 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = Guid.NewGuid()
         };
 
         context.Accounts.AddRange(source, destination);
@@ -167,7 +169,8 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = Guid.NewGuid()
         };
 
         context.Accounts.AddRange(source, destination);
@@ -214,7 +217,8 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = Guid.NewGuid()
         };
 
         context.Accounts.AddRange(source, destination);
@@ -377,7 +381,8 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = Guid.NewGuid()
         };
 
         context.Accounts.AddRange(source, destination);
@@ -438,7 +443,8 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = Guid.NewGuid()
         };
 
         context.Accounts.AddRange(source, destination);
@@ -492,7 +498,8 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = Guid.NewGuid()
         };
 
         context.Accounts.AddRange(source, destination);
