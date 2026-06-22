@@ -90,7 +90,7 @@ public class IdempotencyBehaviorTests
         var request = new DummyRequest { IdempotencyKey = key };
 
         // First call
-        RequestHandlerDelegate<string> next = () => { Interlocked.Increment(ref _handlerRunCount); return Task.FromResult("result-abc"); };
+        RequestHandlerDelegate<string> next = () => { Interlocked.Increment(ref _handlerRunCount); return ValueTask.FromResult("result-abc"); };
         var response1 = await behavior.Handle(request, next, CancellationToken.None);
         Assert.Equal("result-abc", response1);
         Assert.Equal(1, _handlerRunCount);
@@ -122,7 +122,7 @@ public class IdempotencyBehaviorTests
 
                 try
                 {
-                    RequestHandlerDelegate<string> next = () => { Interlocked.Increment(ref _handlerInvocations); return Task.FromResult("processed"); };
+                    RequestHandlerDelegate<string> next = () => { Interlocked.Increment(ref _handlerInvocations); return ValueTask.FromResult("processed"); };
                     var res = await behavior.Handle(req, next, CancellationToken.None);
                     Interlocked.Increment(ref _successCount);
                 }
@@ -159,7 +159,7 @@ public class IdempotencyBehaviorTests
         var request = new DummyRequest { IdempotencyKey = key };
 
         // First call
-        RequestHandlerDelegate<string> next = () => { Interlocked.Increment(ref _handlerInvocations); return Task.FromResult("first-result"); };
+        RequestHandlerDelegate<string> next = () => { Interlocked.Increment(ref _handlerInvocations); return ValueTask.FromResult("first-result"); };
         var firstResult = await behavior.Handle(request, next, CancellationToken.None);
         Assert.Equal("first-result", firstResult);
         Assert.Equal(1, _handlerInvocations);
