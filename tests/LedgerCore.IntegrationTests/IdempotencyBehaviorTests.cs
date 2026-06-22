@@ -79,10 +79,10 @@ public class IdempotencyBehaviorTests
         var cache = new FakeCacheService();
         var behavior = new IdempotencyBehavior<DummyRequest, string>(cache);
 
-        int runCount = 0;
+        _handlerRunCount = 0;
         RequestHandlerDelegate<string> handler = () =>
         {
-            Interlocked.Increment(ref runCount);
+            Interlocked.Increment(ref _handlerRunCount);
             return Task.FromResult("result-abc");
         };
 
@@ -91,12 +91,12 @@ public class IdempotencyBehaviorTests
         // First call
         var response1 = await behavior.Handle(request, handler, CancellationToken.None);
         Assert.Equal("result-abc", response1);
-        Assert.Equal(1, runCount);
+        Assert.Equal(1, _handlerRunCount);
 
         // Second call – should return cached result without invoking handler
         var response2 = await behavior.Handle(request, handler, CancellationToken.None);
         Assert.Equal("result-abc", response2);
-        Assert.Equal(1, runCount); // Handler still called once.
+        Assert.Equal(1, _handlerRunCount); // Handler still called once.
     }
 
     [Fact]
@@ -106,10 +106,10 @@ public class IdempotencyBehaviorTests
         var cache = new FakeCacheService();
         var behavior = new IdempotencyBehavior<DummyRequest, string>(cache);
 
-        int handlerInvocations = 0;
-        int successCount = 0;
-        int duplicateExceptionCount = 0;
-        int otherExceptionCount = 0;
+        _handlerInvocations = 0;
+        _successCount = 0;
+        _duplicateExceptionCount = 0;
+        _otherExceptionCount = 0;
 
         var tasks = new List<Task>();
         for (int i = 0; i < 20; i++)
@@ -118,7 +118,7 @@ public class IdempotencyBehaviorTests
             {
                 RequestHandlerDelegate<string> handler = () =>
                 {
-                    Interlocked.Increment(ref handlerInvocations);
+                    Interlocked.Increment(ref _handlerInvocations);
                     return Task.FromResult("processed");
                 };
                 var req = new DummyRequest { IdempotencyKey = key };
@@ -126,15 +126,15 @@ public class IdempotencyBehaviorTests
                 try
                 {
                     var res = await behavior.Handle(req, handler, CancellationToken.None);
-                    Interlocked.Increment(ref successCount);
+                    Interlocked.Increment(ref _successCount);
                 }
                 catch (InvalidOperationException ex) when (ex.Message.Contains("Duplicate request detected"))
                 {
-                    Interlocked.Increment(ref duplicateExceptionCount);
+                    Interlocked.Increment(ref _duplicateExceptionCount);
                 }
                 catch (Exception)
                 {
-                    Interlocked.Increment(ref otherExceptionCount);
+                    Interlocked.Increment(ref _otherExceptionCount);
                 }
             }));
         }
@@ -142,11 +142,11 @@ public class IdempotencyBehaviorTests
         await Task.WhenAll(tasks);
 
         // Exactly one success, the rest should be duplicate detection exceptions.
-        Assert.Equal(1, successCount);
-        Assert.True(duplicateExceptionCount >= 19, $"Expected at least 19 duplicates, got {duplicateExceptionCount}");
-        Assert.Equal(0, otherExceptionCount);
+        Assert.Equal(1, _successCount);
+        Assert.True(_duplicateExceptionCount >= 19, $"Expected at least 19 duplicates, got {_duplicateExceptionCount}");
+        Assert.Equal(0, _otherExceptionCount);
         // Handler should have run exactly once (by the winner)
-        Assert.Equal(1, handlerInvocations);
+        Assert.Equal(1, _handlerInvocations);
     }
 
     [Fact]
@@ -156,10 +156,10 @@ public class IdempotencyBehaviorTests
         var cache = new FakeCacheService();
         var behavior = new IdempotencyBehavior<DummyRequest, string>(cache);
 
-        int handlerInvocations = 0;
+        _handlerInvocations = 0;
         RequestHandlerDelegate<string> handler = () =>
         {
-            Interlocked.Increment(ref handlerInvocations);
+            Interlocked.Increment(ref _handlerInvocations);
             return Task.FromResult("first-result");
         };
 
@@ -168,11 +168,11 @@ public class IdempotencyBehaviorTests
         // First call
         var firstResult = await behavior.Handle(request, handler, CancellationToken.None);
         Assert.Equal("first-result", firstResult);
-        Assert.Equal(1, handlerInvocations);
+        Assert.Equal(1, _handlerInvocations);
 
         // Second call after first completes
         var secondResult = await behavior.Handle(request, handler, CancellationToken.None);
         Assert.Equal("first-result", secondResult);
-        Assert.Equal(1, handlerInvocations);
+        Assert.Equal(1, _handlerInvocations);
     }
 }
