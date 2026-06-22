@@ -9,7 +9,6 @@ using System.Text.Json;
 using LedgerCore.Domain.Events;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Projections;
-using LedgerCore.Application.Data; // Interface for your DbContext
 using LedgerCore.Application.Contracts;
 
 namespace LedgerCore.Application.Features.Projections;

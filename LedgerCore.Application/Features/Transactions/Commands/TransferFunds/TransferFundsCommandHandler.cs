@@ -2,7 +2,6 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using LedgerCore.Application.Data;
 using LedgerCore.Domain.Constants;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
