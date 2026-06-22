@@ -21,7 +21,7 @@ public class IdempotencyBehaviorTests
     public class FakeCacheService : ICachingService
     {
         private readonly ConcurrentDictionary<string, (string value, DateTime? expiry)> _store = new();
-        private readonly ConcurrentDictionary<string, byte> _locks = new ConcurrentDictionary<string, byte>();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, byte> _locks = new();
 
         public Task<long> AtomicIncrementAsync(string key, long delta)
         {
