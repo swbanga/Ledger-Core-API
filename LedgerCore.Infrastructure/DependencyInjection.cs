@@ -71,6 +71,7 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LedgerCore.Application.Behaviors.IdempotencyBehavior<,>));
+        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LedgerCore.Application.Behaviors.LoggingBehavior<,>));
 
         services.AddHealthChecks()
             .AddCheck("live", () => HealthCheckResult.Healthy(), tags: new[] { "live" })

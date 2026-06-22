@@ -88,7 +88,28 @@ builder.Services.AddInfrastructure(builder.Configuration);
 var app = builder.Build();
 app.UseExceptionHandler();
 
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        diagnosticContext.Set("RequestId", httpContext.TraceIdentifier);
+
+        var requestContext = httpContext.RequestServices.GetService<IRequestContext>();
+        if (requestContext != null)
+        {
+            diagnosticContext.Set("UserId", requestContext.GetUserId().ToString());
+            diagnosticContext.Set("IpAddress", requestContext.GetIpAddress());
+            diagnosticContext.Set("DeviceId", requestContext.GetDeviceId());
+        }
+
+        var activity = System.Diagnostics.Activity.Current;
+        if (activity != null)
+        {
+            diagnosticContext.Set("TraceId", activity.TraceId.ToString());
+            diagnosticContext.Set("SpanId", activity.SpanId.ToString());
+        }
+    };
+});
 
 app.MapControllers();
 app.UseAuthentication();
