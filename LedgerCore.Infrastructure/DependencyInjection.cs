@@ -13,6 +13,7 @@ using LedgerCore.Application.Behaviors;
 using LedgerCore.Infrastructure;
 using StackExchange.Redis;
 using LedgerCore.Infrastructure.Locking;
+using LedgerCore.Infrastructure.Services;
 using LedgerCore.Application.Contracts;
 using LedgerCore.Infrastructure.Caching;
 using LedgerCore.Infrastructure.Authentication;
@@ -33,6 +34,7 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<LedgerDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAccountLockService, AccountLockService>();
+        services.AddScoped<IProjectionRebuildService, ProjectionRebuildService>();
         services.AddSingleton<OutboxProcessorService>();
         services.AddHostedService(sp => sp.GetRequiredService<OutboxProcessorService>());
 
