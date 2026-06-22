@@ -3,7 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using LedgerCore.Application.Data;
+using LedgerCore.Application.Contracts;
 
 namespace LedgerCore.Infrastructure.Health;
 

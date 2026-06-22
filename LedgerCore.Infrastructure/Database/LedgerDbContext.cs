@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using LedgerCore.Application.Data;
+using LedgerCore.Application.Contracts;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Projections;
 using LedgerCore.Domain.ReadModels;
