@@ -7,6 +7,7 @@ using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.ValueObjects;
 using LedgerCore.Application.Contracts;
+using LedgerCore.Application.Data;
 using MediatR;
 
 namespace LedgerCore.Application.Features.Transactions.Commands.TransferFunds;
