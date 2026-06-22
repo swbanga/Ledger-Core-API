@@ -72,6 +72,12 @@ public class IdempotencyBehaviorTests
         }
     }
 
+    private int _handlerRunCount;
+    private int _handlerInvocations;
+    private int _successCount;
+    private int _duplicateExceptionCount;
+    private int _otherExceptionCount;
+
     [Fact]
     public async Task Duplicate_Request_With_Cached_Response_Does_Not_Run_Handler_Again()
     {
