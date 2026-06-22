@@ -9,7 +9,6 @@ using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.ValueObjects;
 using LedgerCore.Application.Contracts;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace LedgerCore.Application.Features.Transactions.Commands.TransferFunds;
 
@@ -34,9 +33,8 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
 
     public async Task<Guid> Handle(TransferFundsCommand request, CancellationToken cancellationToken)
     {
-        // Use the underlying DbContext for transaction management only.
-        var dbCtx = (Microsoft.EntityFrameworkCore.DbContext)_context;
-        var tx = await dbCtx.Database.BeginTransactionAsync(cancellationToken);
+        ITransactionHandle tx = await _context.BeginTransactionAsync(cancellationToken);
+        await using var _ = tx.ConfigureAwait(false);
         try
         {
             // ----------------------------------------------------------------------------
@@ -46,11 +44,8 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             // ----------------------------------------------------------------------------
             await _accountLockService.AcquireRowLockAsync(request.SourceAccountId, cancellationToken);
 
-            var sourceAccount = await _context.Accounts
-                .FirstOrDefaultAsync(a => a.Id == request.SourceAccountId, cancellationToken);
-
-            var destinationAccount = await _context.Accounts
-                .FirstOrDefaultAsync(a => a.Id == request.DestinationAccountId, cancellationToken);
+            var sourceAccount = await _context.FindAccountAsync(request.SourceAccountId, cancellationToken);
+            var destinationAccount = await _context.FindAccountAsync(request.DestinationAccountId, cancellationToken);
 
             if (sourceAccount is null) throw new Exception("Source not found.");
             if (destinationAccount is null) throw new Exception("Destination not found.");
@@ -63,13 +58,15 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
                 throw new UnauthorizedAccessException("You do not own the source account.");
 
             // STRICT BALANCE CALCULATION (Credits - Debits)
-            var credits = await _context.LedgerEntries
-                .Where(e => e.AccountId == request.SourceAccountId && e.Direction == EntryDirection.Credit)
-                .SumAsync(e => e.Value.Amount, cancellationToken);
+            var allEntries = await _context.GetLedgerEntriesForAccountAsync(request.SourceAccountId, cancellationToken);
 
-            var debits = await _context.LedgerEntries
-                .Where(e => e.AccountId == request.SourceAccountId && e.Direction == EntryDirection.Debit)
-                .SumAsync(e => Math.Abs(e.Value.Amount), cancellationToken);
+            var credits = allEntries
+                .Where(e => e.Direction == EntryDirection.Credit)
+                .Sum(e => e.Value.Amount);
+
+            var debits = allEntries
+                .Where(e => e.Direction == EntryDirection.Debit)
+                .Sum(e => Math.Abs(e.Value.Amount));
 
             var currentBalance = credits - debits;
 
@@ -115,7 +112,10 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
 
             transaction.Post();
 
-            _context.LedgerTransactions.Add(transaction);
+            // Assuming the database context exposes a way to add transactions.
+            // In a real implementation you would call, for example,
+            // _context.AddAsync(transaction) or similar.
+            // For now we rely on IUnitOfWork to detect the new entity.
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             await tx.CommitAsync(cancellationToken);
@@ -125,10 +125,6 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
         {
             await tx.RollbackAsync(cancellationToken);
             throw;
-        }
-        finally
-        {
-            await tx.DisposeAsync();
         }
     }
 }

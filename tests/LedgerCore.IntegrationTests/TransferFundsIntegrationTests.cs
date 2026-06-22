@@ -246,23 +246,27 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var destId = Guid.NewGuid();
         var floatId = Guid.NewGuid();
 
+        var userId = reqCtx.GetUserId();
         var sourceAccount = new Account
         {
             Id = sourceId,
             AccountNumber = AccountNumber.CreateUserAccount("0999999991"),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = userId
         };
         var destinationAccount = new Account
         {
             Id = destId,
             AccountNumber = AccountNumber.CreateUserAccount("0999999992"),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = userId
         };
         var floatAccount = new Account
         {
             Id = floatId,
             AccountNumber = AccountNumber.CreateSystemAccount("FLOAT"),
-            AccountType = LedgerCore.Domain.Enums.AccountType.SystemRevenue
+            AccountType = LedgerCore.Domain.Enums.AccountType.SystemRevenue,
+            OwnerUserId = userId
         };
 
         context.Accounts.AddRange(sourceAccount, destinationAccount, floatAccount);
