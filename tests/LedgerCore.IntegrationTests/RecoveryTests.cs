@@ -46,8 +46,9 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         string? reference = null)
     {
         var txId = Guid.NewGuid();
-        var sqlTx = "INSERT INTO [LedgerTransactions] (Id, Status, TimestampUtc) VALUES ({0}, {1}, {2})";
-        await context.Database.ExecuteSqlRawAsync(sqlTx, txId, (int)TransactionStatus.Posted, DateTime.UtcNow);
+        var referenceCode = Guid.NewGuid().ToString();
+        var sqlTx = "INSERT INTO [LedgerTransactions] (Id, Status, TimestampUtc, ReferenceCode) VALUES ({0}, {1}, {2}, {3})";
+        await context.Database.ExecuteSqlRawAsync(sqlTx, txId, (int)TransactionStatus.Posted, DateTime.UtcNow, referenceCode);
 
         var debitId = Guid.NewGuid();
         var sqlEntry = "INSERT INTO [LedgerEntries] (Id, LedgerTransactionId, AccountId, Direction, Value_Amount, Value_Currency, Description) VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})";

@@ -20,13 +20,18 @@ using Xunit;
 
 namespace LedgerCore.IntegrationTests;
 
-public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
+public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>, IDisposable
 {
     private readonly SqlEdgeFixture _fixture;
 
     public TransferFundsIntegrationTests(SqlEdgeFixture fixture)
     {
         _fixture = fixture;
+    }
+
+    public void Dispose()
+    {
+        IdempotencyBehaviorTests.FakeCacheService.Clear();
     }
 
     [Fact]

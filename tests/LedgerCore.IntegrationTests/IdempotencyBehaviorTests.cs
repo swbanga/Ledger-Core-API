@@ -10,7 +10,7 @@ using LedgerCore.Application.Contracts;
 
 namespace LedgerCore.IntegrationTests;
 
-public class IdempotencyBehaviorTests
+public class IdempotencyBehaviorTests : IDisposable
 {
     public class DummyRequest : IRequest<string>, IIdempotentCommand<string>
     {
@@ -56,6 +56,11 @@ public class IdempotencyBehaviorTests
         {
             _store[key] = (value, DateTime.UtcNow + expiry);
             return Task.CompletedTask;
+        }
+
+        public static void Clear()
+        {
+            _locks.Clear();
         }
     }
 
@@ -155,5 +160,10 @@ public class IdempotencyBehaviorTests
         var secondResult = await behavior.Handle(request, next, CancellationToken.None);
         Assert.Equal("first-result", secondResult);
         Assert.Equal(1, _handlerInvocations);
+    }
+
+    public void Dispose()
+    {
+        FakeCacheService.Clear();
     }
 }
