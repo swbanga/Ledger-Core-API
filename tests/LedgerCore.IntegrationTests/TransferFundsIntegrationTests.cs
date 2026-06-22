@@ -26,6 +26,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>, IDis
 
     public TransferFundsIntegrationTests(SqlEdgeFixture fixture)
     {
+        IdempotencyBehaviorTests.FakeCacheService.ClearCache();
         _fixture = fixture;
     }
 

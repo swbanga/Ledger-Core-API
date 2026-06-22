@@ -62,6 +62,8 @@ public class IdempotencyBehaviorTests : IDisposable
         {
             _locks.Clear();
         }
+
+        public static void ClearCache() => _locks.Clear();
     }
 
     private int _handlerRunCount;
@@ -69,6 +71,11 @@ public class IdempotencyBehaviorTests : IDisposable
     private int _successCount;
     private int _duplicateExceptionCount;
     private int _otherExceptionCount;
+
+    public IdempotencyBehaviorTests()
+    {
+        FakeCacheService.ClearCache();
+    }
 
     [Fact]
     public async Task Duplicate_Request_With_Cached_Response_Does_Not_Run_Handler_Again()
