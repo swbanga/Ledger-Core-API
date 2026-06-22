@@ -11,6 +11,11 @@ public class Account
     public LedgerCore.Domain.Enums.AccountType AccountType { get; set; }
     public LedgerCore.Domain.Enums.KycTier KycTier { get; set; }
 
+    /// <summary>
+    /// The identifier of the user who owns this account.
+    /// </summary>
+    public Guid OwnerUserId { get; set; }
+
     // Optimistic Concurrency Token (SQL Server RowVersion)
     public byte[] RowVersion { get; private set; } = Array.Empty<byte>();
 

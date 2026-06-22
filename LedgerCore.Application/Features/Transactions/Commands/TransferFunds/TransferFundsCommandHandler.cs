@@ -55,6 +55,13 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             if (sourceAccount is null) throw new Exception("Source not found.");
             if (destinationAccount is null) throw new Exception("Destination not found.");
 
+            // ----------------------------------------------------------------------------
+            // Account ownership verification – only transfer from an account you own.
+            // ----------------------------------------------------------------------------
+            var currentUserId = _requestContext.GetUserId();
+            if (sourceAccount.OwnerUserId != Guid.Empty && sourceAccount.OwnerUserId != currentUserId)
+                throw new UnauthorizedAccessException("You do not own the source account.");
+
             // STRICT BALANCE CALCULATION (Credits - Debits)
             var credits = await _context.LedgerEntries
                 .Where(e => e.AccountId == request.SourceAccountId && e.Direction == EntryDirection.Credit)

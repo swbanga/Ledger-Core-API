@@ -43,11 +43,14 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var sourceAccountNumber = GenerateUniqueAccountNumber();
         var destAccountNumber = GenerateUniqueAccountNumber();
 
+        var userId = reqCtx.GetUserId();
+
         var sourceAccount = new Account
         {
             Id = sourceId,
             AccountNumber = AccountNumber.CreateUserAccount(sourceAccountNumber),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = userId
         };
         var destinationAccount = new Account
         {
@@ -105,11 +108,14 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var sourceAccountNumber = GenerateUniqueAccountNumber();
         var destAccountNumber = GenerateUniqueAccountNumber();
 
+        var userId = reqCtx.GetUserId();
+
         var source = new Account
         {
             Id = sourceId,
             AccountNumber = AccountNumber.CreateUserAccount(sourceAccountNumber),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = userId
         };
         var destination = new Account
         {
@@ -148,11 +154,14 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var sourceAccountNumber = GenerateUniqueAccountNumber();
         var destAccountNumber = GenerateUniqueAccountNumber();
 
+        var userId = reqCtx.GetUserId();
+
         var source = new Account
         {
             Id = sourceId,
             AccountNumber = AccountNumber.CreateUserAccount(sourceAccountNumber),
-            AccountType = AccountType.User
+            AccountType = AccountType.User,
+            OwnerUserId = userId
         };
         var destination = new Account
         {
@@ -191,12 +200,15 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var sourceAccountNumber = GenerateUniqueAccountNumber();
         var destAccountNumber = GenerateUniqueAccountNumber();
 
+        var userId = reqCtx.GetUserId();
+
         var source = new Account
         {
             Id = sourceId,
             AccountNumber = AccountNumber.CreateUserAccount(sourceAccountNumber),
             AccountType = AccountType.User,
-            KycTier = KycTier.Tier1   // tier 1 has a default limit of 10 000
+            KycTier = KycTier.Tier1,   // tier 1 has a default limit of 10 000
+            OwnerUserId = userId
         };
         var destination = new Account
         {
@@ -331,6 +343,122 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
     private static string GenerateUniqueAccountNumber()
     {
         return $"0{System.Random.Shared.Next(100000000, 999999999)}";
+    }
+
+    [Fact]
+    public async Task TransferFunds_ShouldSucceed_WhenOwnerTransfersOwnFunds()
+    {
+        // Arrange
+        await using var scope = _fixture.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var sender = scope.ServiceProvider.GetRequiredService<MediatR.ISender>();
+        var reqCtx = scope.ServiceProvider.GetRequiredService<IRequestContext>();
+
+        var sourceId = Guid.NewGuid();
+        var destId = Guid.NewGuid();
+
+        var sourceAccountNumber = GenerateUniqueAccountNumber();
+        var destAccountNumber = GenerateUniqueAccountNumber();
+
+        var userId = reqCtx.GetUserId();
+
+        var source = new Account
+        {
+            Id = sourceId,
+            AccountNumber = AccountNumber.CreateUserAccount(sourceAccountNumber),
+            AccountType = AccountType.User,
+            OwnerUserId = userId
+        };
+        var destination = new Account
+        {
+            Id = destId,
+            AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
+            AccountType = AccountType.User
+        };
+
+        context.Accounts.AddRange(source, destination);
+
+        var audit = new AuditMetadata(userId, reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
+        var openingTx = new LedgerTransaction(
+            Guid.NewGuid(),
+            GenerateUniqueReference("OWNEROPEN"),
+            TransactionType.PeerToPeer,
+            Guid.NewGuid().ToString(),
+            audit);
+        context.LedgerTransactions.Add(openingTx);
+        context.LedgerEntries.Add(new LedgerEntry(
+            Guid.NewGuid(),
+            openingTx.Id,
+            sourceId,
+            new Money(200m, "USD"),
+            EntryDirection.Credit));
+        await context.SaveChangesAsync();
+
+        var command = new TransferFundsCommand(sourceId, destId, 50m, "USD", Guid.NewGuid());
+
+        // Act
+        var txId = await sender.Send(command, CancellationToken.None);
+
+        // Assert
+        var entries = await context.LedgerEntries
+            .Where(e => e.TransactionId == txId)
+            .ToListAsync();
+        Assert.NotEmpty(entries);
+    }
+
+    [Fact]
+    public async Task TransferFunds_ShouldThrowUnauthorized_WhenRequesterDoesNotOwnSourceAccount()
+    {
+        // Arrange
+        await using var scope = _fixture.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var sender = scope.ServiceProvider.GetRequiredService<MediatR.ISender>();
+        var reqCtx = scope.ServiceProvider.GetRequiredService<IRequestContext>();
+
+        var sourceId = Guid.NewGuid();
+        var destId = Guid.NewGuid();
+
+        var sourceAccountNumber = GenerateUniqueAccountNumber();
+        var destAccountNumber = GenerateUniqueAccountNumber();
+
+        // OwnerUserId is set to a guid that does NOT match the current user.
+        var differentOwnerId = Guid.NewGuid();
+        var source = new Account
+        {
+            Id = sourceId,
+            AccountNumber = AccountNumber.CreateUserAccount(sourceAccountNumber),
+            AccountType = AccountType.User,
+            OwnerUserId = differentOwnerId
+        };
+        var destination = new Account
+        {
+            Id = destId,
+            AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
+            AccountType = AccountType.User
+        };
+
+        context.Accounts.AddRange(source, destination);
+
+        var audit = new AuditMetadata(reqCtx.GetUserId(), reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
+        var openingTx = new LedgerTransaction(
+            Guid.NewGuid(),
+            GenerateUniqueReference("OTHEROWNER"),
+            TransactionType.PeerToPeer,
+            Guid.NewGuid().ToString(),
+            audit);
+        context.LedgerTransactions.Add(openingTx);
+        context.LedgerEntries.Add(new LedgerEntry(
+            Guid.NewGuid(),
+            openingTx.Id,
+            sourceId,
+            new Money(100m, "USD"),
+            EntryDirection.Credit));
+        await context.SaveChangesAsync();
+
+        var command = new TransferFundsCommand(sourceId, destId, 10m, "USD", Guid.NewGuid());
+
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => sender.Send(command, CancellationToken.None));
     }
 
     private static string GenerateUniqueReference(string prefix)
