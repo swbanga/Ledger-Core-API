@@ -458,7 +458,73 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var command = new TransferFundsCommand(sourceId, destId, 10m, "USD", Guid.NewGuid());
 
         // Act & Assert
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => sender.Send(command, CancellationToken.None));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => sender.Send(command, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task TransferFunds_ShouldThrowConcurrencyException_WhenOptimisticConflict()
+    {
+        // Arrange
+        await using var scope = _fixture.Services.CreateAsyncScope();
+        var context = scope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var reqCtx = scope.ServiceProvider.GetRequiredService<IRequestContext>();
+
+        var sourceId = Guid.NewGuid();
+        var destId = Guid.NewGuid();
+
+        var sourceAccountNumber = GenerateUniqueAccountNumber();
+        var destAccountNumber = GenerateUniqueAccountNumber();
+
+        var userId = reqCtx.GetUserId();
+
+        var source = new Account
+        {
+            Id = sourceId,
+            AccountNumber = AccountNumber.CreateUserAccount(sourceAccountNumber),
+            AccountType = AccountType.User,
+            OwnerUserId = userId
+        };
+        var destination = new Account
+        {
+            Id = destId,
+            AccountNumber = AccountNumber.CreateUserAccount(destAccountNumber),
+            AccountType = AccountType.User
+        };
+
+        context.Accounts.AddRange(source, destination);
+
+        // Seed source with some funds
+        var openingAudit = new AuditMetadata(userId, reqCtx.GetIpAddress(), reqCtx.GetDeviceId());
+        var openingTx = new LedgerTransaction(
+            Guid.NewGuid(),
+            GenerateUniqueReference("OPENING"),
+            TransactionType.PeerToPeer,
+            Guid.NewGuid().ToString(),
+            openingAudit);
+        context.LedgerTransactions.Add(openingTx);
+        context.LedgerEntries.Add(new LedgerEntry(
+            Guid.NewGuid(),
+            openingTx.Id,
+            sourceId,
+            new Money(500m, "USD"),
+            EntryDirection.Credit));
+        await context.SaveChangesAsync();
+
+        // Load the source account in a second context that will be the victim of external delete.
+        await using var innerScope = _fixture.Services.CreateAsyncScope();
+        var context2 = innerScope.ServiceProvider.GetRequiredService<LedgerDbContext>();
+        var sourceFromC2 = await context2.Accounts.FindAsync(sourceId);
+        Assert.NotNull(sourceFromC2);
+
+        // Update the tracked entity (mark activity)
+        sourceFromC2!.MarkActivity();
+
+        // Externally delete the row using raw SQL to simulate concurrent removal
+        await context.Database.ExecuteSqlRawAsync("DELETE FROM [Accounts] WHERE Id = {0}", sourceId);
+
+        // Act & Assert
+        var ex = await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => context2.SaveChangesAsync());
+        Assert.Contains("optimistic", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string GenerateUniqueReference(string prefix)
