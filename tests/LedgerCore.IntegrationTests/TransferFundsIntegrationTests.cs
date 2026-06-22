@@ -539,7 +539,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>, IDis
         await context.Database.ExecuteSqlRawAsync("DELETE FROM [Accounts] WHERE Id = {0}", sourceId);
 
         // Act & Assert
-        var ex = await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => context2.SaveChangesAsync());
+        var ex = await Assert.ThrowsAsync<LedgerCore.Application.Exceptions.ConcurrencyException>(() => context2.SaveChangesAsync());
         Assert.Contains("optimistic", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
