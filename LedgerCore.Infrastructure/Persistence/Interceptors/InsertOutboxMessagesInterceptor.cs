@@ -5,10 +5,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using LedgerCore.Domain.Entities;
-using LedgerCore.Domain.Events;
 using LedgerCore.Infrastructure.Outbox;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace LedgerCore.Infrastructure.Persistence.Interceptors;
@@ -20,43 +18,34 @@ public sealed class InsertOutboxMessagesInterceptor : SaveChangesInterceptor
         InterceptionResult<int> result,
         CancellationToken cancellationToken = default)
     {
-        var context = eventData.Context;
-        if (context == null)
-            return new ValueTask<InterceptionResult<int>>(result);
+        if (eventData.Context is not null)
+        {
+            InsertOutboxMessages(eventData.Context);
+        }
 
-        ProcessOutboxMessages(context);
-
-        return new ValueTask<InterceptionResult<int>>(result);
+        return base.SavingChangesAsync(eventData, result, cancellationToken);
     }
 
-    private static void ProcessOutboxMessages(DbContext context)
+    private static void InsertOutboxMessages(DbContext context)
     {
-        var domainEvents = context.ChangeTracker.Entries()
-            .SelectMany(entry =>
+        var outboxMessages = context.ChangeTracker
+            .Entries<LedgerTransaction>()
+            .Select(entry => entry.Entity)
+            .SelectMany(entity =>
             {
-                var method = entry.Entity.GetType().GetMethod(nameof(LedgerTransaction.GetDomainEvents));
-                if (method == null)
-                    return Enumerable.Empty<(EntityEntry Entry, IDomainEvent Event)>();
-
-                var events = method.Invoke(entry.Entity, null) as IReadOnlyCollection<IDomainEvent>;
-                if (events == null)
-                    return Enumerable.Empty<(EntityEntry, IDomainEvent)>();
-
-                return events.Select(e => (entry, e));
+                var domainEvents = entity.GetDomainEvents();
+                entity.ClearDomainEvents();
+                return domainEvents;
+            })
+            .Select(domainEvent => new OutboxMessage
+            {
+                Id = Guid.NewGuid(),
+                OccurredOn = DateTimeOffset.UtcNow,
+                Type = domainEvent.GetType().AssemblyQualifiedName!,
+                Content = JsonSerializer.Serialize(domainEvent, domainEvent.GetType())
             })
             .ToList();
 
-        foreach (var (entityEntry, domainEvent) in domainEvents)
-        {
-            var outboxMessage = new OutboxMessage
-            {
-                Id = Guid.NewGuid(),
-                OccurredOn = DateTime.UtcNow,
-                Type = domainEvent.GetType().AssemblyQualifiedName!,
-                Content = JsonSerializer.Serialize(domainEvent, domainEvent.GetType(), new JsonSerializerOptions())
-            };
-
-            context.Add(outboxMessage);
-        }
+        context.Set<OutboxMessage>().AddRange(outboxMessages);
     }
 }

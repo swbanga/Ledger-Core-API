@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Caching.StackExchangeRedis;
 using LedgerCore.Application.Data;
 using LedgerCore.Infrastructure.Database;
-using LedgerCore.Infrastructure.Data.Interceptors;
+using LedgerCore.Infrastructure.Persistence.Interceptors;
 using LedgerCore.Infrastructure.BackgroundJobs;
 using MassTransit;
 using MediatR;
