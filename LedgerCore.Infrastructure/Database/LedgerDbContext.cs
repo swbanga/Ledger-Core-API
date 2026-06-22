@@ -75,26 +75,27 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
         b.Property(x => x.RowVersion).IsRowVersion();
     });
     }
+
+    private sealed class EfTransactionHandle : ITransactionHandle
+    {
+        private readonly IDbContextTransaction _transaction;
+
+        public EfTransactionHandle(IDbContextTransaction transaction)
+        {
+            _transaction = transaction;
+        }
+
+        public async Task CommitAsync(CancellationToken cancellationToken)
+        {
+            await _transaction.CommitAsync(cancellationToken);
+        }
+
+        public async Task RollbackAsync(CancellationToken cancellationToken)
+        {
+            await _transaction.RollbackAsync(cancellationToken);
+        }
+
+        public ValueTask DisposeAsync() => _transaction.DisposeAsync();
+    }
 }
 
-private sealed class EfTransactionHandle : ITransactionHandle
-{
-    private readonly IDbContextTransaction _transaction;
-
-    public EfTransactionHandle(IDbContextTransaction transaction)
-    {
-        _transaction = transaction;
-    }
-
-    public async Task CommitAsync(CancellationToken cancellationToken)
-    {
-        await _transaction.CommitAsync(cancellationToken);
-    }
-
-    public async Task RollbackAsync(CancellationToken cancellationToken)
-    {
-        await _transaction.RollbackAsync(cancellationToken);
-    }
-
-    public ValueTask DisposeAsync() => _transaction.DisposeAsync();
-}
