@@ -30,11 +30,11 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         return await Task.FromResult(_fixture.CreateDbContext());
     }
 
-    private async Task<Guid> CreateAccountAsync(LedgerDbContext context, string number)
+    private async Task<Guid> CreateAccountAsync(LedgerDbContext context, string number, Guid ownerId)
     {
         var id = Guid.NewGuid();
-        var sql = "INSERT INTO [Accounts] (Id, AccountNumber, Type) VALUES ({0}, {1}, {2})";
-        await context.Database.ExecuteSqlRawAsync(sql, id, number, (int)AccountType.User);
+        var sql = "INSERT INTO [Accounts] (Id, AccountNumber, OwnerUserId, Type) VALUES ({0}, {1}, {2}, {3})";
+        await context.Database.ExecuteSqlRawAsync(sql, id, number, ownerId, (int)AccountType.User);
         return id;
     }
 
@@ -62,8 +62,8 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
     {
         // Arrange
         await using var context = await GetDbContext();
-        var acc1Id = await CreateAccountAsync(context, "REC0-001");
-        var acc2Id = await CreateAccountAsync(context, "REC0-002");
+        var acc1Id = await CreateAccountAsync(context, "REC0-001", Guid.NewGuid());
+        var acc2Id = await CreateAccountAsync(context, "REC0-002", Guid.NewGuid());
 
         await PostTransactionAsync(context, acc1Id, acc2Id, 100m);
         await PostTransactionAsync(context, acc2Id, acc1Id, 30m);
@@ -96,8 +96,8 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
     {
         // Arrange
         await using var context = await GetDbContext();
-        var accAId = await CreateAccountAsync(context, "REC0-003");
-        var accBId = await CreateAccountAsync(context, "REC0-004");
+        var accAId = await CreateAccountAsync(context, "REC0-003", Guid.NewGuid());
+        var accBId = await CreateAccountAsync(context, "REC0-004", Guid.NewGuid());
 
         await PostTransactionAsync(context, accAId, accBId, 200m);
         await PostTransactionAsync(context, accBId, accAId, 50m);
@@ -132,8 +132,8 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
     {
         // Arrange
         await using var context = await GetDbContext();
-        var acc1Id = await CreateAccountAsync(context, "REC0-005");
-        var acc2Id = await CreateAccountAsync(context, "REC0-006");
+        var acc1Id = await CreateAccountAsync(context, "REC0-005", Guid.NewGuid());
+        var acc2Id = await CreateAccountAsync(context, "REC0-006", Guid.NewGuid());
 
         await PostTransactionAsync(context, acc1Id, acc2Id, 500m);
         await PostTransactionAsync(context, acc2Id, acc1Id, 250m);
