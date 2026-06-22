@@ -81,7 +81,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         await context.SaveChangesAsync();
 
-        var command = new TransferFundsCommand(sourceId, destId, 100m, "USD", Guid.NewGuid());
+        var command = new TransferFundsCommand(sourceId, destId, 100m, "USD", Guid.NewGuid()));
 
         // Act
         var transactionId = await sender.Send(command, CancellationToken.None);
@@ -135,7 +135,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         await context.SaveChangesAsync();
 
-        var command = new TransferFundsCommand(sourceId, destId, 500m, "USD", Guid.NewGuid());
+        var command = new TransferFundsCommand(sourceId, destId, 500m, "USD", Guid.NewGuid()));
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<System.InvalidOperationException>(() => sender.Send(command, CancellationToken.None));
@@ -182,7 +182,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         await context.SaveChangesAsync();
 
-        var command = new TransferFundsCommand(sourceId, destId, 0m, "USD", Guid.NewGuid());
+        var command = new TransferFundsCommand(sourceId, destId, 0m, "USD", Guid.NewGuid()));
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<System.ArgumentException>(async () => await sender.Send(command));
@@ -230,7 +230,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
 
         await context.SaveChangesAsync();
 
-        var command = new TransferFundsCommand(sourceId, destId, 15_000m, "USD", Guid.NewGuid());
+        var command = new TransferFundsCommand(sourceId, destId, 15_000m, "USD", Guid.NewGuid()));
 
         // Act & Assert
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => sender.Send(command, CancellationToken.None));
@@ -313,7 +313,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         {
             await using var innerScope = _fixture.Services.CreateAsyncScope();
             var scopedSender = innerScope.ServiceProvider.GetRequiredService<MediatR.ISender>();
-            var command = new TransferFundsCommand(sourceId, destId, 102m, "USD", Guid.NewGuid());
+            var command = new TransferFundsCommand(sourceId, destId, 102m, "USD", Guid.NewGuid()));
             try
             {
                 await scopedSender.Send(command, ct);
@@ -402,7 +402,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
             EntryDirection.Credit));
         await context.SaveChangesAsync();
 
-        var command = new TransferFundsCommand(sourceId, destId, 50m, "USD", Guid.NewGuid());
+        var command = new TransferFundsCommand(sourceId, destId, 50m, "USD", Guid.NewGuid()));
 
         // Act
         var txId = await sender.Send(command, CancellationToken.None);
@@ -464,7 +464,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
             EntryDirection.Credit));
         await context.SaveChangesAsync();
 
-        var command = new TransferFundsCommand(sourceId, destId, 10m, "USD", Guid.NewGuid());
+        var command = new TransferFundsCommand(sourceId, destId, 10m, "USD", Guid.NewGuid()));
 
         // Act & Assert
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() => sender.Send(command, CancellationToken.None));
