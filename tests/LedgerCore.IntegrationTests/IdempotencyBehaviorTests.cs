@@ -103,7 +103,7 @@ public class IdempotencyBehaviorTests : IDisposable
     [Fact]
     public async Task Concurrent_Requests_With_Same_Key_Only_One_Succeeds_No_Duplicate()
     {
-        var sharedIdempotencyKey = Guid.NewGuid();
+        var sharedKey = Guid.NewGuid();
         var cache = new FakeCacheService();
         var behavior = new IdempotencyBehavior<DummyRequest, string>(cache);
 
@@ -117,7 +117,7 @@ public class IdempotencyBehaviorTests : IDisposable
         {
             tasks.Add(Task.Run(async () =>
             {
-                var req = new DummyRequest { IdempotencyKey = sharedIdempotencyKey };
+                var req = new DummyRequest { IdempotencyKey = sharedKey };
 
                 try
                 {
