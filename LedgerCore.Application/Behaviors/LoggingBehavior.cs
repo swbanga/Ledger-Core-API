@@ -4,7 +4,6 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.Extensions.Logging;
 using LedgerCore.Application.Contracts;
-using Serilog.Context;
 using System.Text.Json;
 
 namespace LedgerCore.Application.Behaviors;
@@ -23,31 +22,26 @@ public class LoggingBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, 
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next, CancellationToken cancellationToken)
     {
         var userId = _requestContext?.GetUserId().ToString() ?? "anonymous";
-        var correlationId = System.Diagnostics.Activity.Current?.TraceId.ToString() ?? string.Empty;
-        var spanId = System.Diagnostics.Activity.Current?.SpanId.ToString() ?? string.Empty;
+        var correlationId = Activity.Current?.TraceId.ToString() ?? string.Empty;
+        var spanId = Activity.Current?.SpanId.ToString() ?? string.Empty;
 
-        using (LogContext.PushProperty("UserId", userId))
-        using (LogContext.PushProperty("TraceId", correlationId))
-        using (LogContext.PushProperty("SpanId", spanId))
+        var requestName = typeof(TRequest).Name;
+        var requestReference = JsonSerializer.Serialize(request);
+        _logger.LogInformation("Ledger Execution Started: {RequestName} {RequestReference} {UserId} {TraceId} {SpanId}", requestName, requestReference, userId, correlationId, spanId);
+
+        var timer = Stopwatch.StartNew();
+        try
         {
-            var requestName = typeof(TRequest).Name;
-            var requestReference = JsonSerializer.Serialize(request);
-            _logger.LogInformation("Ledger Execution Started: {RequestName} {RequestReference}", requestName, requestReference);
-
-            var timer = Stopwatch.StartNew();
-            try
-            {
-                var response = await next();
-                timer.Stop();
-                _logger.LogInformation("Ledger Execution Completed: {RequestName} in {ElapsedMilliseconds}ms", requestName, timer.ElapsedMilliseconds);
-                return response;
-            }
-            catch (System.Exception ex)
-            {
-                timer.Stop();
-                _logger.LogError(ex, "Ledger Execution Failed: {RequestName} after {ElapsedMilliseconds}ms", requestName, timer.ElapsedMilliseconds);
-                throw;
-            }
+            var response = await next();
+            timer.Stop();
+            _logger.LogInformation("Ledger Execution Completed: {RequestName} in {ElapsedMilliseconds}ms {UserId} {TraceId} {SpanId}", requestName, timer.ElapsedMilliseconds, userId, correlationId, spanId);
+            return response;
+        }
+        catch (System.Exception ex)
+        {
+            timer.Stop();
+            _logger.LogError(ex, "Ledger Execution Failed: {RequestName} after {ElapsedMilliseconds}ms {UserId} {TraceId} {SpanId}", requestName, timer.ElapsedMilliseconds, userId, correlationId, spanId);
+            throw;
         }
     }
 }
