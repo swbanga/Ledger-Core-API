@@ -63,4 +63,28 @@ public class LayerDependencyTests
         Assert.True(result.IsSuccessful);
     }
 
+    [Fact]
+    public void Application_Should_Not_Reference_EntityFramework()
+    {
+        var result = Types
+            .InAssembly(ApplicationAssembly)
+            .Should()
+            .NotHaveDependencyOn("Microsoft.EntityFrameworkCore")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful);
+    }
+
+    [Fact]
+    public void Domain_Should_Not_Reference_EntityFramework()
+    {
+        var result = Types
+            .InAssembly(DomainAssembly)
+            .Should()
+            .NotHaveDependencyOn("Microsoft.EntityFrameworkCore")
+            .GetResult();
+
+        Assert.True(result.IsSuccessful);
+    }
+
 }
