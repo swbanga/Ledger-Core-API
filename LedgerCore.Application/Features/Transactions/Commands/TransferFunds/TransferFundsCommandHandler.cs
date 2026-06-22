@@ -112,10 +112,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
 
             transaction.Post();
 
-            // Assuming the database context exposes a way to add transactions.
-            // In a real implementation you would call, for example,
-            // _context.AddAsync(transaction) or similar.
-            // For now we rely on IUnitOfWork to detect the new entity.
+            await _context.AddTransactionAsync(transaction, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             await tx.CommitAsync(cancellationToken);
