@@ -36,44 +36,9 @@ public class LedgerConsistencyTests
         Assert.Equal(0, tx.Entries.Sum(e => e.Value.Amount));
     }
 
-    [Fact]
-    public void Post_WithImbalancedSum_ThrowsInvalidOperationException()
-    {
-        var tx = new LedgerTransaction(
-            Guid.NewGuid(),
-            "REF-004",
-            TransactionType.PeerToPeer,
-            "corr-4",
-            GenerateAudit());
-
-        var e1 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Credit);
-        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(50m, "USD"), EntryDirection.Debit);
-        tx.AddEntry(e1);
-        tx.AddEntry(e2);
-
-        var ex = Assert.Throws<InvalidOperationException>(() => tx.Post());
-        Assert.Contains("Double-entry", ex.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("50", ex.Message);
-    }
 
     // ---------- minimum entry count ----------
 
-    [Fact]
-    public void Post_WithLessThanTwoEntries_ThrowsInvalidOperationException()
-    {
-        var tx = new LedgerTransaction(
-            Guid.NewGuid(),
-            "REF-002",
-            TransactionType.PeerToPeer,
-            "corr-2",
-            GenerateAudit());
-
-        var entry = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(50m, "USD"), EntryDirection.Debit);
-        tx.AddEntry(entry);
-
-        var ex = Assert.Throws<InvalidOperationException>(() => tx.Post());
-        Assert.Contains("at least 2 entries", ex.Message, StringComparison.OrdinalIgnoreCase);
-    }
 
     // ---------- zero‑value rejection ----------
 

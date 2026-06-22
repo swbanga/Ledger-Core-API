@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 using LedgerCore.Application.Contracts;
 using LedgerCore.Domain.Entities;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace LedgerCore.Application.Features.Admin.Commands.ReplayLedger;
 
@@ -21,10 +20,7 @@ public sealed class ReplayLedgerCommandHandler : IRequestHandler<ReplayLedgerCom
 
     public async Task<ReplayResult> Handle(ReplayLedgerCommand request, CancellationToken cancellationToken)
     {
-        List<LedgerTransaction> transactions = await _dbContext.LedgerTransactions
-            .Include(t => t.Entries)
-            .OrderBy(t => t.TimestampUtc)
-            .ToListAsync(cancellationToken);
+        List<LedgerTransaction> transactions = await _dbContext.GetAllTransactionsAsync(cancellationToken);
 
         int total = transactions.Count;
         var corruptedIds = new List<Guid>(capacity: total);

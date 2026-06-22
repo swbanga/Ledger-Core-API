@@ -33,6 +33,29 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
         return await LedgerEntries.Where(e => e.AccountId == accountId).ToListAsync(cancellationToken);
     }
 
+    public async Task<List<LedgerTransaction>> GetAllTransactionsAsync(CancellationToken cancellationToken)
+    {
+        return await LedgerTransactions
+            .Include(t => t.Entries)
+            .OrderBy(t => t.TimestampUtc)
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<AccountBalance?> FindAccountBalanceAsync(Guid accountId, CancellationToken cancellationToken)
+    {
+        return await AccountBalances.FirstOrDefaultAsync(b => b.AccountId == accountId, cancellationToken);
+    }
+
+    public async Task AddTransactionAsync(LedgerTransaction transaction, CancellationToken cancellationToken)
+    {
+        await LedgerTransactions.AddAsync(transaction, cancellationToken);
+    }
+
+    public async Task AddAccountBalanceAsync(AccountBalance accountBalance, CancellationToken cancellationToken)
+    {
+        await AccountBalances.AddAsync(accountBalance, cancellationToken);
+    }
+
     public async Task<ITransactionHandle> BeginTransactionAsync(CancellationToken cancellationToken)
     {
         var transaction = await Database.BeginTransactionAsync(cancellationToken);

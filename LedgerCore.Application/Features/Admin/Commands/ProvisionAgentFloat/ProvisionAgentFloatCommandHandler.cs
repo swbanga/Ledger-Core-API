@@ -7,7 +7,6 @@ using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.ValueObjects;
 using LedgerCore.Application.Contracts;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace LedgerCore.Application.Features.Admin.Commands.ProvisionAgentFloat
 {
@@ -25,9 +24,7 @@ namespace LedgerCore.Application.Features.Admin.Commands.ProvisionAgentFloat
         public async Task<Guid> Handle(ProvisionAgentFloatCommand request, CancellationToken cancellationToken)
         {
             // Validate that the agent account exists and is an AgentFloat account
-            var db = (DbContext)_context;
-            var agentAccount = await db.Set<Account>().FindAsync(
-                new object?[] { request.AgentAccountId }, cancellationToken);
+            var agentAccount = await _context.FindAccountAsync(request.AgentAccountId, cancellationToken);
 
             if (agentAccount is null)
                 throw new InvalidOperationException(
@@ -59,7 +56,7 @@ namespace LedgerCore.Application.Features.Admin.Commands.ProvisionAgentFloat
 
             transaction.Post();
 
-            db.Set<LedgerTransaction>().Add(transaction);
+            await _context.AddTransactionAsync(transaction, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
 
             return transaction.Id;

@@ -3,7 +3,6 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using LedgerCore.Application.Contracts;
 using LedgerCore.Domain.Projections;
@@ -32,8 +31,7 @@ public sealed class GetAccountBalanceQueryHandler : IRequestHandler<GetAccountBa
             return JsonSerializer.Deserialize<AccountBalance>(cached)!;
         }
 
-        var balance = await _context.AccountBalances
-            .FirstOrDefaultAsync(b => b.AccountId == request.AccountId, cancellationToken);
+        var balance = await _context.FindAccountBalanceAsync(request.AccountId, cancellationToken);
 
         if (balance == null)
         {

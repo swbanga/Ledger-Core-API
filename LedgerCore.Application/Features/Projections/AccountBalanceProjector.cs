@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Text.Json;
 using LedgerCore.Domain.Events;
@@ -33,8 +32,7 @@ public class AccountBalanceProjector : INotificationHandler<DomainEventNotificat
         {
             if (!balances.TryGetValue(entry.AccountId, out var projection))
             {
-                projection = await _context.AccountBalances
-                    .FirstOrDefaultAsync(b => b.AccountId == entry.AccountId, cancellationToken);
+                projection = await _context.FindAccountBalanceAsync(entry.AccountId, cancellationToken);
 
                 if (projection == null)
                 {
@@ -44,7 +42,7 @@ public class AccountBalanceProjector : INotificationHandler<DomainEventNotificat
                         CurrentBalance = entry.Value.Amount,
                         LastUpdatedAt = DateTimeOffset.UtcNow
                     };
-                    _context.AccountBalances.Add(projection);
+                    await _context.AddAccountBalanceAsync(projection, cancellationToken);
                 }
 
                 balances[entry.AccountId] = projection;
