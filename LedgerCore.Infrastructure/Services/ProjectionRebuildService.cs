@@ -56,11 +56,10 @@ public class ProjectionRebuildService : IProjectionRebuildService
         // Persist rebuilt balances
         foreach (var kv in balances)
         {
-            var state = new AccountBalanceState
+            var state = new AccountBalanceState(kv.Key)
             {
-                AccountId = kv.Key,
-                Balance = kv.Value,
-                // Currency, LastUpdated etc. can be filled when the read model requires them.
+                CurrentBalance = kv.Value,
+                LastUpdatedUtc = DateTime.UtcNow
             };
             balanceStates.Add(state);
         }
