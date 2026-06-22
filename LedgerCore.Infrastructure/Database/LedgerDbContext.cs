@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using LedgerCore.Application.Contracts;
+using LedgerCore.Application.Exceptions;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Projections;
 using LedgerCore.Domain.ReadModels;
@@ -59,6 +60,18 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
     public void AddAccount(Account account)
     {
         Accounts.Add(account);
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+        {
+            throw new ConcurrencyException("Optimistic concurrency conflict.", ex);
+        }
     }
 
     public async Task<ITransactionHandle> BeginTransactionAsync(CancellationToken cancellationToken)

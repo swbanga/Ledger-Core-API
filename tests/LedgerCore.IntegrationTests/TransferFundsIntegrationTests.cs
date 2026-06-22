@@ -9,6 +9,7 @@ using LedgerCore.Domain.Constants;
 using LedgerCore.Domain.Entities;
 using LedgerCore.Domain.Enums;
 using LedgerCore.Domain.Exceptions;
+using LedgerCore.Application.Exceptions;
 using LedgerCore.Domain.ValueObjects;
 using LedgerCore.Infrastructure.Database;
 using MediatR;
@@ -323,7 +324,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
             {
                 lock (lockObj) failedOrConflict++;
             }
-            catch (DbUpdateConcurrencyException)
+            catch (ConcurrencyException)
             {
                 lock (lockObj) failedOrConflict++;
             }
