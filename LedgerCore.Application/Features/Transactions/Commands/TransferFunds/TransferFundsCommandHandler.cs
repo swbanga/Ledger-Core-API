@@ -18,32 +18,33 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
     private readonly IApplicationDbContext _context;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IRequestContext _requestContext;
+    private readonly IAccountLockService _accountLockService;
 
     public TransferFundsCommandHandler(
         IApplicationDbContext context,
         IUnitOfWork unitOfWork,
-        IRequestContext requestContext)
+        IRequestContext requestContext,
+        IAccountLockService accountLockService)
     {
         _context = context;
         _unitOfWork = unitOfWork;
         _requestContext = requestContext;
+        _accountLockService = accountLockService;
     }
 
     public async Task<Guid> Handle(TransferFundsCommand request, CancellationToken cancellationToken)
     {
-        var dbContext = (Microsoft.EntityFrameworkCore.DbContext)_context;
-        var tx = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        // Use the underlying DbContext for transaction management only.
+        var dbCtx = (Microsoft.EntityFrameworkCore.DbContext)_context;
+        var tx = await dbCtx.Database.BeginTransactionAsync(cancellationToken);
         try
         {
-            // ---------------------------------------------------------------------------
-            // ACQUIRE ROW-LEVEL UPDATE LOCK ON SOURCE ACCOUNT
-            // This is the pivot of the concurrency fix:
-            // any other transfer targeting the same source account will be blocked here
-            // until the current transaction commits or rolls back.
-            // ---------------------------------------------------------------------------
-            await dbContext.Database.ExecuteSqlInterpolatedAsync(
-                $"SELECT 1 FROM [Accounts] WITH (UPDLOCK, ROWLOCK) WHERE [Id] = {request.SourceAccountId}",
-                cancellationToken);
+            // ----------------------------------------------------------------------------
+            // Acquire an exclusive row-level lock on the source account through the
+            // infrastructure service. This is the pivot of the concurrency fix – every
+            // transfer targeting the same source account will be serialised here.
+            // ----------------------------------------------------------------------------
+            await _accountLockService.AcquireRowLockAsync(request.SourceAccountId, cancellationToken);
 
             var sourceAccount = await _context.Accounts
                 .FirstOrDefaultAsync(a => a.Id == request.SourceAccountId, cancellationToken);

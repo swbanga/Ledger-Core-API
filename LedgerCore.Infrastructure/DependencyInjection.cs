@@ -12,6 +12,7 @@ using MediatR;
 using LedgerCore.Application.Behaviors;
 using LedgerCore.Infrastructure;
 using StackExchange.Redis;
+using LedgerCore.Infrastructure.Locking;
 using LedgerCore.Application.Contracts;
 using LedgerCore.Infrastructure.Caching;
 using LedgerCore.Infrastructure.Authentication;
@@ -29,6 +30,7 @@ public static class DependencyInjection
                    .AddInterceptors(sp.GetRequiredService<InsertOutboxMessagesInterceptor>()));
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<LedgerDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IAccountLockService, AccountLockService>();
         services.AddHostedService<OutboxProcessorService>();
 
         services.AddSingleton<IConnectionMultiplexer>(sp =>
