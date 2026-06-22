@@ -90,20 +90,13 @@ public class IdempotencyBehaviorTests
         var request = new DummyRequest { IdempotencyKey = key };
 
         // First call
-        var response1 = await behavior.Handle(request, () =>
-        {
-            Interlocked.Increment(ref _handlerRunCount);
-            return Task.FromResult("result-abc");
-        }, CancellationToken.None);
+        RequestHandlerDelegate<string> next = () => { Interlocked.Increment(ref _handlerRunCount); return Task.FromResult("result-abc"); };
+        var response1 = await behavior.Handle(request, next, CancellationToken.None);
         Assert.Equal("result-abc", response1);
         Assert.Equal(1, _handlerRunCount);
 
         // Second call – should return cached result without invoking handler
-        var response2 = await behavior.Handle(request, () =>
-        {
-            Interlocked.Increment(ref _handlerRunCount);
-            return Task.FromResult("result-abc");
-        }, CancellationToken.None);
+        var response2 = await behavior.Handle(request, next, CancellationToken.None);
         Assert.Equal("result-abc", response2);
         Assert.Equal(1, _handlerRunCount); // Handler still called once.
     }
@@ -129,11 +122,8 @@ public class IdempotencyBehaviorTests
 
                 try
                 {
-                    var res = await behavior.Handle(req, () =>
-                    {
-                        Interlocked.Increment(ref _handlerInvocations);
-                        return Task.FromResult("processed");
-                    }, CancellationToken.None);
+                    RequestHandlerDelegate<string> next = () => { Interlocked.Increment(ref _handlerInvocations); return Task.FromResult("processed"); };
+                    var res = await behavior.Handle(req, next, CancellationToken.None);
                     Interlocked.Increment(ref _successCount);
                 }
                 catch (InvalidOperationException ex) when (ex.Message.Contains("Duplicate request detected"))
@@ -169,20 +159,13 @@ public class IdempotencyBehaviorTests
         var request = new DummyRequest { IdempotencyKey = key };
 
         // First call
-        var firstResult = await behavior.Handle(request, () =>
-        {
-            Interlocked.Increment(ref _handlerInvocations);
-            return Task.FromResult("first-result");
-        }, CancellationToken.None);
+        RequestHandlerDelegate<string> next = () => { Interlocked.Increment(ref _handlerInvocations); return Task.FromResult("first-result"); };
+        var firstResult = await behavior.Handle(request, next, CancellationToken.None);
         Assert.Equal("first-result", firstResult);
         Assert.Equal(1, _handlerInvocations);
 
         // Second call after first completes
-        var secondResult = await behavior.Handle(request, () =>
-        {
-            Interlocked.Increment(ref _handlerInvocations);
-            return Task.FromResult("first-result");
-        }, CancellationToken.None);
+        var secondResult = await behavior.Handle(request, next, CancellationToken.None);
         Assert.Equal("first-result", secondResult);
         Assert.Equal(1, _handlerInvocations);
     }
