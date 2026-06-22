@@ -17,6 +17,8 @@ using LedgerCore.Application.Contracts;
 using LedgerCore.Infrastructure.Caching;
 using LedgerCore.Infrastructure.Authentication;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using LedgerCore.Infrastructure.Health;
 
 namespace LedgerCore.Infrastructure;
 
@@ -31,7 +33,8 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<LedgerDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAccountLockService, AccountLockService>();
-        services.AddHostedService<OutboxProcessorService>();
+        services.AddSingleton<OutboxProcessorService>();
+        services.AddHostedService(sp => sp.GetRequiredService<OutboxProcessorService>());
 
         services.AddSingleton<IConnectionMultiplexer>(sp =>
         {
@@ -68,6 +71,12 @@ public static class DependencyInjection
             .ValidateOnStart();
 
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LedgerCore.Application.Behaviors.IdempotencyBehavior<,>));
+
+        services.AddHealthChecks()
+            .AddCheck("live", () => HealthCheckResult.Healthy(), tags: new[] { "live" })
+            .AddCheck<SqlServerHealthCheck>("sqlserver", tags: new[] { "ready", "db" })
+            .AddCheck<RedisHealthCheck>("redis", tags: new[] { "ready", "cache" })
+            .AddCheck<OutboxProcessorHealthCheck>("outbox_processor", tags: new[] { "ready" });
 
         return services;
     }

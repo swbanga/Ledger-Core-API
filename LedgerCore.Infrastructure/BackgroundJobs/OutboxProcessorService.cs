@@ -17,6 +17,8 @@ public sealed class OutboxProcessorService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<OutboxProcessorService> _logger;
 
+    public bool IsRunning { get; private set; }
+
     public OutboxProcessorService(IServiceScopeFactory scopeFactory, ILogger<OutboxProcessorService> logger)
     {
         _scopeFactory = scopeFactory;
@@ -26,6 +28,7 @@ public sealed class OutboxProcessorService : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("Outbox processor started.");
+        IsRunning = true;
 
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
 
@@ -49,6 +52,7 @@ public sealed class OutboxProcessorService : BackgroundService
         }
 
         _logger.LogInformation("Outbox processor stopped.");
+        IsRunning = false;
     }
 
     private async Task ProcessOutboxAsync(CancellationToken cancellationToken)

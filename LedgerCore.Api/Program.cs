@@ -16,6 +16,8 @@ using Serilog.Formatting.Compact;
 using OpenTelemetry;
 using OpenTelemetry.Instrumentation.AspNetCore;
 using OpenTelemetry.Trace;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 Serilog.Log.Logger = new Serilog.LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -91,6 +93,15 @@ app.UseSerilogRequestLogging();
 app.MapControllers();
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.UseHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = (check) => check.Tags.Contains("live"),
+});
+app.UseHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = (check) => check.Tags.Contains("ready"),
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
