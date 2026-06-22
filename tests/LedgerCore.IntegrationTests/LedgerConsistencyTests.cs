@@ -25,8 +25,8 @@ public class LedgerConsistencyTests
             "corr-1",
             GenerateAudit());
 
-        var debit = new LedgerEntry(Guid.NewGuid(), txId, Guid.NewGuid(), new Money(150m, "USD"), EntryDirection.Debit);
-        var credit = new LedgerEntry(Guid.NewGuid(), txId, Guid.NewGuid(), new Money(150m, "USD"), EntryDirection.Credit);
+        var debit = new LedgerEntry(Guid.NewGuid(), txId, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Debit);
+        var credit = new LedgerEntry(Guid.NewGuid(), txId, Guid.NewGuid(), new Money(-100m, "USD"), EntryDirection.Credit);
         tx.AddEntry(debit);
         tx.AddEntry(credit);
 
@@ -63,12 +63,14 @@ public class LedgerConsistencyTests
             "corr-3",
             GenerateAudit());
 
-        var e1 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Credit);
-        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(50m, "USD"), EntryDirection.Debit);
+        var e1 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Debit);
+        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(-100m, "USD"), EntryDirection.Credit);
         var e3 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(50m, "EUR"), EntryDirection.Debit);
+        var e4 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(-50m, "EUR"), EntryDirection.Credit);
         tx.AddEntry(e1);
         tx.AddEntry(e2);
         tx.AddEntry(e3);
+        tx.AddEntry(e4);
 
         var ex = Assert.Throws<InvalidOperationException>(() => tx.Post());
         Assert.Contains("Mixed-currency", ex.Message, StringComparison.OrdinalIgnoreCase);
@@ -85,8 +87,8 @@ public class LedgerConsistencyTests
             TransactionType.PeerToPeer,
             "corr-5",
             GenerateAudit());
-        var e1 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(50m, "USD"), EntryDirection.Debit);
-        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(50m, "USD"), EntryDirection.Credit);
+        var e1 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Debit);
+        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(-100m, "USD"), EntryDirection.Credit);
         tx.AddEntry(e1);
         tx.AddEntry(e2);
         tx.Post();
@@ -107,8 +109,8 @@ public class LedgerConsistencyTests
             "corr-6",
             GenerateAudit());
 
-        var e1 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(10m, "USD"), EntryDirection.Debit);
-        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(10m, "USD"), EntryDirection.Credit);
+        var e1 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Debit);
+        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(-100m, "USD"), EntryDirection.Credit);
         tx.AddEntry(e1);
         tx.AddEntry(e2);
         tx.Post();

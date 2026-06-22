@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,8 +20,7 @@ public class IdempotencyBehaviorTests
 
     public class FakeCacheService : ICachingService
     {
-        private readonly object _guard = new object();
-        private readonly Dictionary<string, (string value, DateTime? expiry)> _store = new();
+        private readonly ConcurrentDictionary<string, (string value, DateTime? expiry)> _store = new();
 
         public Task<long> AtomicIncrementAsync(string key, long delta)
         {
@@ -34,41 +34,31 @@ public class IdempotencyBehaviorTests
 
         public Task<bool> AcquireLockAsync(string key, string value, TimeSpan expiry)
         {
-            lock (_guard)
+            if (!_store.TryAdd(key, (value, DateTime.UtcNow + expiry)))
             {
-                if (_store.ContainsKey(key))
-                {
-                    return Task.FromResult(false);
-                }
-                _store[key] = (value, DateTime.UtcNow + expiry);
-                return Task.FromResult(true);
+                return Task.FromResult(false);
             }
+            return Task.FromResult(true);
         }
 
         public Task<string?> GetAsync(string key)
         {
-            lock (_guard)
+            if (_store.TryGetValue(key, out var entry))
             {
-                if (_store.TryGetValue(key, out var entry))
+                if (entry.expiry.HasValue && entry.expiry.Value < DateTime.UtcNow)
                 {
-                    if (entry.expiry.HasValue && entry.expiry.Value < DateTime.UtcNow)
-                    {
-                        _store.Remove(key);
-                        return Task.FromResult<string?>(null);
-                    }
-                    return Task.FromResult<string?>(entry.value);
+                    _store.TryRemove(key, out _);
+                    return Task.FromResult<string?>(null);
                 }
-                return Task.FromResult<string?>(null);
+                return Task.FromResult<string?>(entry.value);
             }
+            return Task.FromResult<string?>(null);
         }
 
         public Task SetAsync(string key, string value, TimeSpan expiry)
         {
-            lock (_guard)
-            {
-                _store[key] = (value, DateTime.UtcNow + expiry);
-                return Task.CompletedTask;
-            }
+            _store[key] = (value, DateTime.UtcNow + expiry);
+            return Task.CompletedTask;
         }
     }
 
