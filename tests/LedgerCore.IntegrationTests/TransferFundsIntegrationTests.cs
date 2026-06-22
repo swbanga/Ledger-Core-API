@@ -458,7 +458,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>
         var command = new TransferFundsCommand(sourceId, destId, 10m, "USD", Guid.NewGuid());
 
         // Act & Assert
-        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => sender.Send(command, CancellationToken.None);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => sender.Send(command, CancellationToken.None));
     }
 
     [Fact]
