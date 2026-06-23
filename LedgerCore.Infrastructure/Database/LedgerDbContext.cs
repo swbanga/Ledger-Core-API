@@ -8,6 +8,7 @@ using LedgerCore.Infrastructure.Outbox;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System;
 
 namespace LedgerCore.Infrastructure.Database;
 
@@ -79,10 +80,15 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
         }
     }
 
-    public async Task<ITransactionHandle> BeginTransactionAsync(CancellationToken cancellationToken)
+    public async Task ExecuteInTransactionAsync(Func<Task> action, CancellationToken cancellationToken)
     {
-        var transaction = await Database.BeginTransactionAsync(cancellationToken);
-        return new EfTransactionHandle(transaction);
+        var strategy = Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await Database.BeginTransactionAsync(cancellationToken);
+            await action();
+            await transaction.CommitAsync(cancellationToken);
+        });
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -122,26 +128,5 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
     });
     }
 
-    private sealed class EfTransactionHandle : ITransactionHandle
-    {
-        private readonly IDbContextTransaction _transaction;
-
-        public EfTransactionHandle(IDbContextTransaction transaction)
-        {
-            _transaction = transaction;
-        }
-
-        public async Task CommitAsync(CancellationToken cancellationToken)
-        {
-            await _transaction.CommitAsync(cancellationToken);
-        }
-
-        public async Task RollbackAsync(CancellationToken cancellationToken)
-        {
-            await _transaction.RollbackAsync(cancellationToken);
-        }
-
-        public ValueTask DisposeAsync() => _transaction.DisposeAsync();
-    }
 }
 

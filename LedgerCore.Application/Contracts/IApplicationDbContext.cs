@@ -17,7 +17,7 @@ public interface IApplicationDbContext
     Task AddTransactionAsync(LedgerTransaction transaction, CancellationToken cancellationToken);
     Task AddAccountBalanceAsync(AccountBalance accountBalance, CancellationToken cancellationToken);
     void AddAccount(Account account);
-    Task<ITransactionHandle> BeginTransactionAsync(CancellationToken cancellationToken);
+    Task ExecuteInTransactionAsync(Func<Task> action, CancellationToken cancellationToken);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     void ClearChangeTracker();
 }
