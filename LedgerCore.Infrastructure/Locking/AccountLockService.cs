@@ -26,6 +26,6 @@ public sealed class AccountLockService : IAccountLockService
         // while the transaction is active.
         await _context.Database.ExecuteSqlRawAsync(
             "SELECT 1 FROM [Accounts] WITH (UPDLOCK, ROWLOCK) WHERE [Id] = {0}",
-            accountId, cancellationToken);
+            new object[] { accountId }, cancellationToken);
     }
 }
