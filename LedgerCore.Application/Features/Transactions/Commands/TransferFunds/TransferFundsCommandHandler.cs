@@ -48,10 +48,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             if (sourceAccount.OwnerUserId != Guid.Empty && sourceAccount.OwnerUserId != currentUserId)
                 throw new UnauthorizedAccessException("You do not own the source account.");
 
-            var allEntries = await _context.GetLedgerEntriesForAccountAsync(request.SourceAccountId, cancellationToken);
-            var credits = allEntries.Where(e => e.Direction == EntryDirection.Credit).Sum(e => e.Value.Amount);
-            var debits = allEntries.Where(e => e.Direction == EntryDirection.Debit).Sum(e => Math.Abs(e.Value.Amount));
-            var currentBalance = credits - debits;
+            var currentBalance = await _context.CalculateAccountBalanceAsync(request.SourceAccountId, cancellationToken);
             var principal = request.Amount;
             var feeAmount = 2.00m;
 

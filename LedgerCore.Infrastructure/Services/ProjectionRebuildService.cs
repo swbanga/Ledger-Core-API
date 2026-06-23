@@ -30,17 +30,19 @@ public class ProjectionRebuildService : IProjectionRebuildService
         balanceStates.RemoveRange(existing);
 
         // Load all posted transactions in deterministic order
-        var transactions = await _context.Set<LedgerCore.Domain.Entities.LedgerTransaction>()
+        var transactionsQuery = _context.Set<LedgerCore.Domain.Entities.LedgerTransaction>()
             .Include(t => t.Entries)
             .Where(t => t.Status == TransactionStatus.Posted)
             .OrderBy(t => t.TimestampUtc)
             .ThenBy(t => t.Id)
-            .ToListAsync(cancellationToken);
+            .AsAsyncEnumerable();
 
         var balances = new Dictionary<Guid, decimal>();
+        int txCount = 0;
 
-        foreach (var tx in transactions)
+        await foreach (var tx in transactionsQuery.WithCancellation(cancellationToken))
         {
+            txCount++;
             foreach (var entry in tx.Entries)
             {
                 // Credit increases the account balance, debit decreases it.
@@ -66,6 +68,6 @@ public class ProjectionRebuildService : IProjectionRebuildService
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new RebuildProjectionsResult(balances.Count, transactions.Count);
+        return new RebuildProjectionsResult(balances.Count, txCount);
     }
 }

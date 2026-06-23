@@ -68,6 +68,13 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
         ChangeTracker.Clear();
     }
 
+    public async Task<decimal> CalculateAccountBalanceAsync(Guid accountId, CancellationToken cancellationToken)
+    {
+        return await LedgerEntries
+            .Where(e => e.AccountId == accountId)
+            .SumAsync(e => e.Direction == LedgerCore.Domain.Enums.EntryDirection.Credit ? e.Value.Amount : -e.Value.Amount, cancellationToken);
+    }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         try

@@ -20,6 +20,7 @@ public interface IApplicationDbContext
     Task ExecuteInTransactionAsync(Func<Task> action, CancellationToken cancellationToken);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
     void ClearChangeTracker();
+    Task<decimal> CalculateAccountBalanceAsync(Guid accountId, CancellationToken cancellationToken);
 }
 
 public interface ITransactionHandle : IAsyncDisposable
