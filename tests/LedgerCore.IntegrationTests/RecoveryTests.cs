@@ -51,15 +51,15 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         var ipAddress = "127.0.0.1";
         var deviceId = "TEST-DEVICE";
 
-        var sqlTx = "INSERT INTO [LedgerTransactions] (Id, Status, TimestampUtc, ReferenceCode, TransactionType, CorrelationId, AuditMetadata_UserId, AuditMetadata_IpAddress, AuditMetadata_DeviceId) VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8})";
+        var sqlTx = "INSERT INTO [LedgerTransactions] (Id, Status, TimestampUtc, ReferenceCode, TransactionType, CorrelationId, Audit_UserId, Audit_IpAddress, Audit_DeviceId) VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8})";
         await context.Database.ExecuteSqlRawAsync(sqlTx, txId, (int)TransactionStatus.Posted, DateTime.UtcNow, referenceCode, 0, Guid.NewGuid(), userId, ipAddress, deviceId);
 
         var debitId = Guid.NewGuid();
-        var sqlEntry = "INSERT INTO [LedgerEntries] (Id, LedgerTransactionId, AccountId, Direction, Value_Amount, Value_Currency, Description) VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})";
-        await context.Database.ExecuteSqlRawAsync(sqlEntry, debitId, txId, sourceAccountId, (int)EntryDirection.Debit, amount, "EUR", reference ?? "recovery-test");
+        var sqlEntry = "INSERT INTO [LedgerEntries] (Id, TransactionId, AccountId, Direction, Amount, Currency) VALUES ({0}, {1}, {2}, {3}, {4}, {5})";
+        await context.Database.ExecuteSqlRawAsync(sqlEntry, debitId, txId, sourceAccountId, (int)EntryDirection.Debit, amount, "EUR");
 
         var creditId = Guid.NewGuid();
-        await context.Database.ExecuteSqlRawAsync(sqlEntry, creditId, txId, destinationAccountId, (int)EntryDirection.Credit, amount, "EUR", reference ?? "recovery-test");
+        await context.Database.ExecuteSqlRawAsync(sqlEntry, creditId, txId, destinationAccountId, (int)EntryDirection.Credit, amount, "EUR");
     }
 
     [Fact]
