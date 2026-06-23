@@ -44,4 +44,10 @@ public sealed class RedisCachingService : ICachingService
         var db = _redis.GetDatabase();
         await db.StringSetAsync(key, value, expiry);
     }
+
+    public async Task RemoveAsync(string key)
+    {
+        var db = _redis.GetDatabase();
+        await db.KeyDeleteAsync(key);
+    }
 }

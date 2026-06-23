@@ -66,7 +66,7 @@ public class IdempotencyBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
             // (the default implementation is a no‑op), leaving a permanent lock.
             try
             {
-                await _cache.SetKeyExpiryAsync(key, TimeSpan.Zero);
+                await _cache.RemoveAsync(key);
             }
             catch
             {

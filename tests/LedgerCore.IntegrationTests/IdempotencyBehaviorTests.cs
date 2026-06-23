@@ -61,6 +61,7 @@ public class IdempotencyBehaviorTests : IDisposable
         public Task RemoveAsync(string key)
         {
             _store.TryRemove(key, out _);
+            _locks.TryRemove(key, out _);
             return Task.CompletedTask;
         }
 

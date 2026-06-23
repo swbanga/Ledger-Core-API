@@ -72,7 +72,6 @@ public static class DependencyInjection
                       "JWT secret must be at least 32 characters and non‑empty.")
             .ValidateOnStart();
 
-        services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LedgerCore.Application.Behaviors.IdempotencyBehavior<,>));
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LedgerCore.Application.Behaviors.LoggingBehavior<,>));
 
         services.AddHealthChecks()
