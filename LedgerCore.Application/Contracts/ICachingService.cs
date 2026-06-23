@@ -29,4 +29,9 @@ public interface ICachingService
     /// Sets the string <paramref name="value"/> at <paramref name="key"/> with the given expiry.
     /// </summary>
     Task SetAsync(string key, string value, TimeSpan expiry);
+
+    /// <summary>
+    /// Removes the specified key if it exists.
+    /// </summary>
+    Task RemoveAsync(string key) => Task.CompletedTask;
 }
