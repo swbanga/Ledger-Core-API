@@ -62,9 +62,11 @@ public class IdempotencyBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
         {
             // On failure we do NOT store any result; the key may be used again in a future attempt.
             // Release the lock so that future attempts can process the same idempotency key.
+            // Use immediate expiry because ICachingService.RemoveAsync may not be implemented
+            // (the default implementation is a no‑op), leaving a permanent lock.
             try
             {
-                await _cache.RemoveAsync(key);
+                await _cache.SetKeyExpiryAsync(key, TimeSpan.Zero);
             }
             catch
             {
