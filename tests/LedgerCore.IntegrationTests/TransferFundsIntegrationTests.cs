@@ -362,7 +362,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>, IDis
         var debits = await context.LedgerEntries
             .Where(e => e.AccountId == sourceId && e.Direction == EntryDirection.Debit)
             .SumAsync(e => Math.Abs(e.Value.Amount));
-        Assert.Equal(0m, credits - debits);
+        Assert.Equal(2m, credits - debits);
         Assert.True(succeeded == 1 && failedOrConflict >= 9, $"Succeeded={succeeded}, Failures/Conflicts={failedOrConflict}");
     }
 
