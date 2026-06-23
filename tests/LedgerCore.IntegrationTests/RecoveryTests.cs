@@ -51,8 +51,8 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         var ipAddress = "127.0.0.1";
         var deviceId = "TEST-DEVICE";
 
-        var sqlTx = "INSERT INTO [LedgerTransactions] (Id, Status, TimestampUtc, ReferenceCode, TransactionType, CorrelationId, Audit_UserId, Audit_IpAddress, Audit_DeviceId) VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8})";
-        await context.Database.ExecuteSqlRawAsync(sqlTx, txId, (int)TransactionStatus.Posted, DateTime.UtcNow, referenceCode, 0, Guid.NewGuid(), userId, ipAddress, deviceId);
+        var sqlTx = "INSERT INTO [LedgerTransactions] (Id, ReferenceCode, TransactionType, Status, TimestampUtc, CorrelationId, Audit_UserId, Audit_IpAddress, Audit_DeviceId) VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8})";
+        await context.Database.ExecuteSqlRawAsync(sqlTx, txId, referenceCode, 0, (int)TransactionStatus.Posted, DateTime.UtcNow, Guid.NewGuid(), userId, ipAddress, deviceId);
 
         var debitId = Guid.NewGuid();
         var sqlEntry = "INSERT INTO [LedgerEntries] (Id, TransactionId, AccountId, Direction, Amount, Currency) VALUES ({0}, {1}, {2}, {3}, {4}, {5})";
