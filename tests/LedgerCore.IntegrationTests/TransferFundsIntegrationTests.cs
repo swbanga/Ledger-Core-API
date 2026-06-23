@@ -204,8 +204,8 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>, IDis
         var command = new TransferFundsCommand(sourceId, destId, 0m, "USD", Guid.NewGuid());
 
         // Act & Assert
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(async () => await sender.Send(command));
-        Assert.Contains("Amount", ex.Message, StringComparison.OrdinalIgnoreCase);
+        var ex = await Assert.ThrowsAsync<ArgumentException>(async () => await sender.Send(command));
+        Assert.Contains("amount cannot be zero", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -497,7 +497,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>, IDis
                 continue;
             }
 
-            Assert.IsType<InvalidOperationException>(thrown);
+            Assert.IsType<UnauthorizedAccessException>(thrown);
             Assert.Contains("own the source account", thrown.Message, StringComparison.OrdinalIgnoreCase);
             break;
         }
