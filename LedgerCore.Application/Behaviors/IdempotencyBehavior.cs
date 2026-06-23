@@ -37,7 +37,7 @@ public class IdempotencyBehavior<TRequest, TResponse> : IPipelineBehavior<TReque
             }
 
             // A previous request has completed; return the stored response.
-            return JsonSerializer.Deserialize<TResponse>(existing);
+            return JsonSerializer.Deserialize<TResponse>(existing)!;
         }
 
         // No cached entry yet — try to acquire the lock.
