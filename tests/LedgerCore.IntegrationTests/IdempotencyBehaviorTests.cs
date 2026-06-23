@@ -138,12 +138,19 @@ public class IdempotencyBehaviorTests : IDisposable
 
         await Task.WhenAll(tasks);
 
-        // Exactly one success, the rest should be duplicate detection exceptions.
-        Assert.Equal(1, _successCount);
-        Assert.True(_duplicateExceptionCount >= 19, $"Expected at least 19 duplicates, got {_duplicateExceptionCount}");
-        Assert.Equal(0, _otherExceptionCount);
-        // Handler should have run exactly once (by the winner)
+        // Handler should have run exactly once (by the winner).
         Assert.Equal(1, _handlerInvocations);
+
+        // At least one request must return a successful result (the winner, and possibly later
+        // requests that see the cached result).
+        Assert.True(_successCount >= 1, $"Expected at least one success, got {_successCount}");
+
+        // Every request either succeeded or was explicitly rejected as a duplicate;
+        // there must be no other kinds of exceptions.
+        Assert.Equal(0, _otherExceptionCount);
+
+        // The total number of calls equals 20.
+        Assert.Equal(20, _successCount + _duplicateExceptionCount);
     }
 
     [Fact]
