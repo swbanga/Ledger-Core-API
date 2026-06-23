@@ -33,7 +33,7 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
     private async Task<Guid> CreateAccountAsync(LedgerDbContext context, string number, Guid ownerId)
     {
         var id = Guid.NewGuid();
-        var sql = "INSERT INTO [Accounts] (Id, AccountNumber, OwnerUserId, LastActivityUtc, AccountType, KycTier) VALUES ({0}, {1}, {2}, GETUTCDATE(), 1, 1)";
+        var sql = "INSERT INTO [Accounts] (Id, AccountNumber, OwnerUserId, LastActivityUtc, AccountType, KycTier) VALUES ({0}, {1}, {2}, GETUTCDATE(), 'User', 'Tier1')";
         await context.Database.ExecuteSqlRawAsync(sql, id, number, ownerId);
         return id;
     }
@@ -51,15 +51,16 @@ public class RecoveryTests : IClassFixture<SqlEdgeFixture>
         var ipAddress = "127.0.0.1";
         var deviceId = "TEST-DEVICE";
 
-        var sqlTx = "INSERT INTO [LedgerTransactions] (Id, ReferenceCode, TransactionType, Status, TimestampUtc, CorrelationId, Audit_UserId, Audit_IpAddress, Audit_DeviceId) VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8})";
-        await context.Database.ExecuteSqlRawAsync(sqlTx, txId, referenceCode, 0, (int)TransactionStatus.Posted, DateTime.UtcNow, Guid.NewGuid(), userId, ipAddress, deviceId);
+        var sqlTx = "INSERT INTO [LedgerTransactions] (Id, ReferenceCode, TransactionType, Status, TimestampUtc, CorrelationId, Audit_UserId, Audit_IpAddress, Audit_DeviceId) VALUES ({0}, {1}, 'PeerToPeer', 'Posted', {2}, {3}, {4}, {5}, {6})";
+        await context.Database.ExecuteSqlRawAsync(sqlTx, txId, referenceCode, DateTime.UtcNow, Guid.NewGuid(), userId, ipAddress, deviceId);
 
         var debitId = Guid.NewGuid();
-        var sqlEntry = "INSERT INTO [LedgerEntries] (Id, TransactionId, AccountId, Direction, Amount, Currency) VALUES ({0}, {1}, {2}, {3}, {4}, {5})";
-        await context.Database.ExecuteSqlRawAsync(sqlEntry, debitId, txId, sourceAccountId, (int)EntryDirection.Debit, amount, "EUR");
+        var sqlDebitEntry = "INSERT INTO [LedgerEntries] (Id, TransactionId, AccountId, Direction, Amount, Currency) VALUES ({0}, {1}, {2}, 'Debit', {3}, {4})";
+        await context.Database.ExecuteSqlRawAsync(sqlDebitEntry, debitId, txId, sourceAccountId, amount, "EUR");
 
         var creditId = Guid.NewGuid();
-        await context.Database.ExecuteSqlRawAsync(sqlEntry, creditId, txId, destinationAccountId, (int)EntryDirection.Credit, amount, "EUR");
+        var sqlCreditEntry = "INSERT INTO [LedgerEntries] (Id, TransactionId, AccountId, Direction, Amount, Currency) VALUES ({0}, {1}, {2}, 'Credit', {3}, {4})";
+        await context.Database.ExecuteSqlRawAsync(sqlCreditEntry, creditId, txId, destinationAccountId, amount, "EUR");
     }
 
     [Fact]
