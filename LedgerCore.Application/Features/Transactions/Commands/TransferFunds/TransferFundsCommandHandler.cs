@@ -137,6 +137,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             {
                 // Transient failure (deadlock, timeout, or concurrency conflict) – retry.
                 await tx.RollbackAsync(cancellationToken);
+                _context.ClearChangeTracker();
                 await Task.Delay(50, cancellationToken);
                 continue;
             }

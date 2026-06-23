@@ -62,6 +62,11 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
         Accounts.Add(account);
     }
 
+    public void ClearChangeTracker()
+    {
+        ChangeTracker.Clear();
+    }
+
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         try

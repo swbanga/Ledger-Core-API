@@ -19,6 +19,7 @@ public interface IApplicationDbContext
     void AddAccount(Account account);
     Task<ITransactionHandle> BeginTransactionAsync(CancellationToken cancellationToken);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
+    void ClearChangeTracker();
 }
 
 public interface ITransactionHandle : IAsyncDisposable
