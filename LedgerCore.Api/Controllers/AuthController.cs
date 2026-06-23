@@ -18,9 +18,10 @@ public class AuthController : ControllerBase
     [HttpPost("token")]
     public IActionResult GenerateToken([FromBody] TokenRequest request)
     {
-        var token = _jwtProvider.GenerateToken(request.UserId, request.Role);
+        // TODO: Replace development token minting with proper identity provider before production deployment.
+        var token = _jwtProvider.GenerateToken(request.UserId, "User");
         return Ok(new { Token = token });
     }
 }
 
-public record TokenRequest(Guid UserId, string Role);
+public record TokenRequest(Guid UserId);

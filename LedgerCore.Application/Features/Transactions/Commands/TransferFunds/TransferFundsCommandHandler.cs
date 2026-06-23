@@ -44,6 +44,7 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             if (destinationAccount is null) throw new Exception("Destination not found.");
 
             var currentUserId = _requestContext.GetUserId();
+            // SECURITY INVARIANT: Users may only transfer funds from accounts they own.
             if (sourceAccount.OwnerUserId != Guid.Empty && sourceAccount.OwnerUserId != currentUserId)
                 throw new UnauthorizedAccessException("You do not own the source account.");
 
