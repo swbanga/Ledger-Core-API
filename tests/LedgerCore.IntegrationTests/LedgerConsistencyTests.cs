@@ -33,7 +33,7 @@ public class LedgerConsistencyTests
         tx.Post();
 
         Assert.Equal(TransactionStatus.Posted, tx.Status);
-        Assert.Equal(0, tx.Entries.Sum(e => e.Value.Amount));
+        Assert.Equal(0, tx.Entries.Sum(e => e.Direction == EntryDirection.Credit ? e.Value.Amount : -e.Value.Amount));
     }
 
 
