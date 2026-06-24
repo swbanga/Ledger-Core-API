@@ -26,7 +26,7 @@ public class LedgerConsistencyTests
             GenerateAudit());
 
         var debit = new LedgerEntry(Guid.NewGuid(), txId, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Debit);
-        var credit = new LedgerEntry(Guid.NewGuid(), txId, Guid.NewGuid(), new Money(-100m, "USD"), EntryDirection.Credit);
+        var credit = new LedgerEntry(Guid.NewGuid(), txId, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Credit);
         tx.AddEntry(debit);
         tx.AddEntry(credit);
 
@@ -64,9 +64,9 @@ public class LedgerConsistencyTests
             GenerateAudit());
 
         var e1 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Debit);
-        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(-100m, "USD"), EntryDirection.Credit);
+        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Credit);
         var e3 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(50m, "EUR"), EntryDirection.Debit);
-        var e4 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(-50m, "EUR"), EntryDirection.Credit);
+        var e4 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(50m, "EUR"), EntryDirection.Credit);
         tx.AddEntry(e1);
         tx.AddEntry(e2);
         tx.AddEntry(e3);
@@ -88,7 +88,7 @@ public class LedgerConsistencyTests
             "corr-5",
             GenerateAudit());
         var e1 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Debit);
-        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(-100m, "USD"), EntryDirection.Credit);
+        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Credit);
         tx.AddEntry(e1);
         tx.AddEntry(e2);
         tx.Post();
@@ -110,7 +110,7 @@ public class LedgerConsistencyTests
             GenerateAudit());
 
         var e1 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Debit);
-        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(-100m, "USD"), EntryDirection.Credit);
+        var e2 = new LedgerEntry(Guid.NewGuid(), tx.Id, Guid.NewGuid(), new Money(100m, "USD"), EntryDirection.Credit);
         tx.AddEntry(e1);
         tx.AddEntry(e2);
         tx.Post();
