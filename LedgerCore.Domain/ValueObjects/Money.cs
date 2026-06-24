@@ -2,15 +2,30 @@ using System;
 
 namespace LedgerCore.Domain.ValueObjects;
 
-public sealed record Money(decimal Amount, string Currency)
+public sealed record Money
 {
-    // Enforce domain invariant: Amount must always be non‑negative
-    public Money
+    public decimal Amount { get; init; }
+    public string Currency { get; init; }
+
+    public Money(decimal amount, string currency)
     {
-        if (Amount < 0)
-            throw new ArgumentOutOfRangeException(nameof(Amount), "Money amount must be non‑negative.");
+        if (amount < 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(amount),
+                "Money amount must be non-negative.");
+
+        Amount = amount;
+        Currency = currency;
     }
 
-    public static Money operator +(Money a, Money b) =>
-        a.Currency == b.Currency ? new Money(a.Amount + b.Amount, a.Currency) : throw new InvalidOperationException($"FATAL: Currency mismatch. Cannot add {a.Currency} to {b.Currency}.");
+    public static Money operator +(Money a, Money b)
+    {
+        if (a.Currency != b.Currency)
+        {
+            throw new InvalidOperationException(
+                $"FATAL: Currency mismatch. Cannot add {a.Currency} to {b.Currency}.");
+        }
+
+        return new Money(a.Amount + b.Amount, a.Currency);
+    }
 }
