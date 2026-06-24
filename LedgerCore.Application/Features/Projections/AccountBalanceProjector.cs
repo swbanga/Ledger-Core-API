@@ -30,7 +30,7 @@ public class AccountBalanceProjector : INotificationHandler<DomainEventNotificat
 
         foreach (var entry in domainEvent.Entries)
         {
-            var delta = entry.Direction == LedgerCore.Domain.Enums.EntryDirection.Credit
+            var delta = entry.Direction == Domain.Enums.EntryDirection.Credit
                             ? entry.Value.Amount
                             : -entry.Value.Amount;
 

@@ -99,7 +99,7 @@ public class TransferFundsIntegrationTests : IClassFixture<SqlEdgeFixture>, IDis
             .ToListAsync();
 
         Assert.Equal(4, entries.Count);
-        Assert.Equal(0m, entries.Sum(e => e.Value.Amount));
+        Assert.Equal(0m, entries.Sum(e => e.Direction == LedgerCore.Domain.Enums.EntryDirection.Credit ? e.Value.Amount : -e.Value.Amount));
     }
 
     [Fact]

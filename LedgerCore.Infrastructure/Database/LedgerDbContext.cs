@@ -72,7 +72,7 @@ public class LedgerDbContext : DbContext, IApplicationDbContext
     {
         return await LedgerEntries
             .Where(e => e.AccountId == accountId)
-            .SumAsync(e => e.Direction == LedgerCore.Domain.Enums.EntryDirection.Credit ? e.Value.Amount : -e.Value.Amount, cancellationToken);
+            .SumAsync(e => e.Direction == Domain.Enums.EntryDirection.Credit ? e.Value.Amount : -e.Value.Amount, cancellationToken);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
