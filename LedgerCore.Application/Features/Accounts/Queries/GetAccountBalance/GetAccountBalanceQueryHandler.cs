@@ -19,7 +19,7 @@ public sealed class GetAccountBalanceQueryHandler : IRequestHandler<GetAccountBa
     {
         // The core tenet of the ledger: Balance is the sum of all entries.
         var entries = await _context.GetLedgerEntriesForAccountAsync(request.AccountId, cancellationToken);
-        var balance = entries.Sum(e => e.Value.Amount);
+        var balance = entries.Sum(e => e.Direction == LedgerCore.Domain.Enums.Direction.Credit ? e.Value.Amount : -e.Value.Amount);
 
         return balance;
     }

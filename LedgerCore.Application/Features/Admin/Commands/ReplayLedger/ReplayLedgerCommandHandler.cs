@@ -28,7 +28,7 @@ public sealed class ReplayLedgerCommandHandler : IRequestHandler<ReplayLedgerCom
         foreach (LedgerTransaction txn in transactions)
         {
             // No entries means sum is 0, which passes the invariant.
-            decimal sum = txn.Entries.Sum(e => e.Value.Amount);
+            decimal sum = txn.Entries.Sum(e => e.Direction == LedgerCore.Domain.Enums.Direction.Credit ? e.Value.Amount : -e.Value.Amount);
             if (sum != 0m)
             {
                 corruptedIds.Add(txn.Id);
