@@ -30,6 +30,10 @@ public class AccountBalanceProjector : INotificationHandler<DomainEventNotificat
 
         foreach (var entry in domainEvent.Entries)
         {
+            var delta = entry.Direction == LedgerCore.Domain.Enums.EntryDirection.Credit
+                            ? entry.Value.Amount
+                            : -entry.Value.Amount;
+
             if (!balances.TryGetValue(entry.AccountId, out var projection))
             {
                 projection = await _context.FindAccountBalanceAsync(entry.AccountId, cancellationToken);
@@ -39,7 +43,7 @@ public class AccountBalanceProjector : INotificationHandler<DomainEventNotificat
                     projection = new AccountBalance
                     {
                         AccountId = entry.AccountId,
-                        CurrentBalance = entry.Value.Amount,
+                        CurrentBalance = 0,
                         LastUpdatedAt = DateTimeOffset.UtcNow
                     };
                     await _context.AddAccountBalanceAsync(projection, cancellationToken);
@@ -47,11 +51,9 @@ public class AccountBalanceProjector : INotificationHandler<DomainEventNotificat
 
                 balances[entry.AccountId] = projection;
             }
-            else
-            {
-                projection.CurrentBalance += entry.Value.Amount;
-                projection.LastUpdatedAt = DateTimeOffset.UtcNow;
-            }
+
+            projection.CurrentBalance += delta;
+            projection.LastUpdatedAt = DateTimeOffset.UtcNow;
         }
 
         await _context.SaveChangesAsync(cancellationToken);

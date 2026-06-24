@@ -59,9 +59,9 @@ public class TransferFundsCommandHandler : IRequestHandler<TransferFundsCommand,
             var metadata = new AuditMetadata(_requestContext.GetUserId(), _requestContext.GetIpAddress(), _requestContext.GetDeviceId());
             var transaction = new LedgerTransaction(Guid.NewGuid(), $"REF-{Guid.NewGuid():N}", TransactionType.PeerToPeer, Guid.NewGuid().ToString(), metadata);
 
-            transaction.AddEntry(new LedgerEntry(Guid.NewGuid(), transaction.Id, request.SourceAccountId, new Money(-principal, request.Currency), EntryDirection.Debit));
+            transaction.AddEntry(new LedgerEntry(Guid.NewGuid(), transaction.Id, request.SourceAccountId, new Money(principal, request.Currency), EntryDirection.Debit));
             transaction.AddEntry(new LedgerEntry(Guid.NewGuid(), transaction.Id, request.DestinationAccountId, new Money(principal, request.Currency), EntryDirection.Credit));
-            transaction.AddEntry(new LedgerEntry(Guid.NewGuid(), transaction.Id, request.SourceAccountId, new Money(-feeAmount, request.Currency), EntryDirection.Debit));
+            transaction.AddEntry(new LedgerEntry(Guid.NewGuid(), transaction.Id, request.SourceAccountId, new Money(feeAmount, request.Currency), EntryDirection.Debit));
             transaction.AddEntry(new LedgerEntry(Guid.NewGuid(), transaction.Id, Guid.Parse("33333333-3333-3333-3333-333333333333"), new Money(feeAmount, request.Currency), EntryDirection.Credit));
 
             transaction.Post();

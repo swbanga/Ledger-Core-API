@@ -21,6 +21,8 @@ public class LedgerEntry
     public LedgerEntry(Guid id, Guid transactionId, Guid accountId, Money value, EntryDirection direction)
     {
         // Master Blueprint Rule 4: Forbidden 0.00 entries
+        if (value.Amount < 0)
+            throw new ArgumentException("FATAL: Ledger entry amount cannot be negative.", nameof(value));
         if (value.Amount == 0)
             throw new ArgumentException("FATAL: Ledger entry amount cannot be zero.", nameof(value));
 
