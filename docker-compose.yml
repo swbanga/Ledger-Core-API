@@ -1,4 +1,31 @@
 services:
+  # 1. The API Shell
+  ledger-api:
+    image: ledgercore-api:v1.0
+    container_name: ledger-api
+    build:
+      context: . # Build from the solution root to include all Clean Arch layers
+      dockerfile: LedgerCore.Api/Dockerfile
+    ports:
+      - "5000:8080" # Maps local port 5000 to container port 8080
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      # Dynamic connection strings mapping to the containers below
+      - ConnectionStrings__DefaultConnection=Server=sqldb;Database=LedgerCoreDb;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True;
+      # Redis Authentication Tunnel
+      - Redis__Configuration=redis-cache:6379,password=${REDIS_PASSWORD},abortConnect=false
+      - RabbitMQ__Host=ledger-broker
+      # JWT Cryptography Tunnel
+      - Jwt__Secret=${JWT_SECRET}
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+    depends_on:
+      - sqldb
+      - redis-cache
+      - ledger-broker
+    restart: unless-stopped
+
+  # 2. Azure SQL Edge
   sqldb:
     image: mcr.microsoft.com/azure-sql-edge:latest
     container_name: ledger-sql
@@ -6,23 +33,37 @@ services:
       - SYS_PTRACE
     environment:
       - ACCEPT_EULA=1
-      - MSSQL_SA_PASSWORD=${DB_PASSWORD} # Reads dynamically from .env
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD}
     ports:
       - "1433:1433"
     volumes:
       - sql-data:/var/opt/mssql
     restart: unless-stopped
 
+  # 3. Distributed Lock & Idempotency Cache
   redis-cache:
     image: redis:7-alpine
     container_name: ledger-redis
     ports:
       - "6379:6379"
-    command: redis-server --save 60 1 --loglevel warning
+    # Physical requirement for password authentication enforced by the Redis engine
+    command: redis-server --save 60 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis-data:/data
+    restart: unless-stopped
+
+  # 4. Outbox Message Broker
+  ledger-broker:
+    image: rabbitmq:3-management-alpine
+    container_name: ledger-broker
+    ports:
+      - "5672:5672"     # AMQP Protocol Port
+      - "15672:15672"   # Web Management UI Port
+    volumes:
+      - rabbit-data:/var/lib/rabbitmq
     restart: unless-stopped
 
 volumes:
   sql-data:
   redis-data:
+  rabbit-data:

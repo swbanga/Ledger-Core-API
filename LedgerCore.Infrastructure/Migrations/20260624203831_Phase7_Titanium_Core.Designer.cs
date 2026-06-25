@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace LedgerCore.Infrastructure.Migrations
 {
     [DbContext(typeof(LedgerDbContext))]
-    [Migration("20260621014835_Phase6_Titanium_Snapshot")]
-    partial class Phase6_Titanium_Snapshot
+    [Migration("20260624203831_Phase7_Titanium_Core")]
+    partial class Phase7_Titanium_Core
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -47,6 +47,9 @@ namespace LedgerCore.Infrastructure.Migrations
                     b.Property<DateTime>("LastActivityUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -65,6 +68,7 @@ namespace LedgerCore.Infrastructure.Migrations
                             AccountType = "Suspense",
                             KycTier = "Tier4",
                             LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OwnerUserId = new Guid("00000000-0000-0000-0000-000000000001"),
                             RowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }
                         },
                         new
@@ -74,6 +78,7 @@ namespace LedgerCore.Infrastructure.Migrations
                             AccountType = "TaxLiability",
                             KycTier = "Tier4",
                             LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OwnerUserId = new Guid("00000000-0000-0000-0000-000000000001"),
                             RowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }
                         },
                         new
@@ -83,6 +88,7 @@ namespace LedgerCore.Infrastructure.Migrations
                             AccountType = "SystemRevenue",
                             KycTier = "Tier4",
                             LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OwnerUserId = new Guid("00000000-0000-0000-0000-000000000001"),
                             RowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }
                         },
                         new
@@ -92,6 +98,7 @@ namespace LedgerCore.Infrastructure.Migrations
                             AccountType = "Settlement",
                             KycTier = "Tier4",
                             LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OwnerUserId = new Guid("00000000-0000-0000-0000-000000000001"),
                             RowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }
                         },
                         new
@@ -101,6 +108,7 @@ namespace LedgerCore.Infrastructure.Migrations
                             AccountType = "Reserve",
                             KycTier = "Tier4",
                             LastActivityUtc = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            OwnerUserId = new Guid("00000000-0000-0000-0000-000000000001"),
                             RowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 }
                         });
                 });

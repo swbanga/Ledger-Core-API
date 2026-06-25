@@ -18,6 +18,7 @@ using OpenTelemetry.Instrumentation.AspNetCore;
 using OpenTelemetry.Trace;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Scalar.AspNetCore;
 
 Serilog.Log.Logger = new Serilog.LoggerConfiguration()
     .Enrich.FromLogContext()
@@ -34,8 +35,19 @@ builder.Host.UseSerilog((context, configuration) => configuration
     .WriteTo.Console());
 
 // Add services to the container.
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-builder.Services.AddOpenApi();
+// Add services to the container.
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info.Title = "LedgerCore API";
+        document.Info.Version = "v1.0";
+        document.Info.Description = "Enterprise Financial Ledger Prototype.\n\n" +
+                                    "> **DevSecOps Notice:** This interactive intelligence layer (Scalar UI) is deliberately exposed in this cloud pilot for public testing and architectural evaluation by technical recruiters. In a live banking environment, this interactive footprint would be aggressively amputated or restricted behind an internal API Gateway and corporate VPN to neutralize the application's public attack surface.\n\n" +
+                                    "**Engineered by Super Washington Banga | Backend and Cloud Systems Engineering**";
+        return Task.CompletedTask;
+    });
+});
 builder.Services.AddControllers();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
@@ -111,10 +123,23 @@ app.UseSerilogRequestLogging(options =>
     };
 });
 
-app.MapControllers();
+// Middleware & Security Chain
+app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// 1. Core Endpoint Routing Map
+app.MapControllers();
+
+// 2. OpenAPI Generation & Scalar UI Exposure (Enabled for Cloud Pilot)
+app.MapOpenApi();
+app.MapScalarApiReference();
+
+// 3. Root URL Redirect Hijack to Default Landing Page
+app.MapGet("/", () => Results.Redirect("/scalar/v1"))
+   .ExcludeFromDescription();
+
+// 4. Infrastructure Health Probes
 app.UseHealthChecks("/health/live", new HealthCheckOptions
 {
     Predicate = (check) => check.Tags.Contains("live"),
@@ -124,36 +149,4 @@ app.UseHealthChecks("/health/ready", new HealthCheckOptions
     Predicate = (check) => check.Tags.Contains("ready"),
 });
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
-app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast =  Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast");
-
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}

@@ -1,2 +1,37 @@
 .aider*
 .env
+# =========================
+# The DevSecOps Airgap
+# =========================
+.env
+devskim-report.sarif
+*.pfx
+*.cer
+*.key
+
+# =========================
+# .NET / C# Compilation Trash
+# =========================
+[Bb]in/
+[Oo]bj/
+*.userprefs
+*.suo
+*.user
+*.slnx.user
+
+# =========================
+# Visual Studio Code & Rider
+# =========================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+.idea/
+*.DotSettings.user
+
+# =========================
+# OS & Docker Caches
+# =========================
+.DS_Store
+Thumbs.db
+.dockerignore

@@ -31,11 +31,6 @@ public static class DependencyInjection
         services.AddDbContext<LedgerDbContext>((sp, options) =>
             options.UseSqlServer(configuration.GetConnectionString("Database"), sqlOptions => sqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(2), errorNumbersToAdd: null))
                    .AddInterceptors(sp.GetRequiredService<InsertOutboxMessagesInterceptor>()));
-        // temporary test
-        // services.AddDbContext<LedgerDbContext>((sp, options) =>
-        //     options.UseSqlServer(configuration.GetConnectionString("Database"), sqlOptions => sqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(2), errorNumbersToAdd: null))
-        //            .EnableSensitiveDataLogging()
-        //            .LogTo(Console.WriteLine));
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<LedgerDbContext>());
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IAccountLockService, AccountLockService>();

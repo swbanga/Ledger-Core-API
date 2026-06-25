@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace LedgerCore.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class Phase6_Titanium_Snapshot : Migration
+    public partial class Phase7_Titanium_Core : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -50,6 +50,7 @@ namespace LedgerCore.Infrastructure.Migrations
                     AccountNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     AccountType = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     KycTier = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OwnerUserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
                     LastActivityUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
@@ -117,14 +118,14 @@ namespace LedgerCore.Infrastructure.Migrations
 
             migrationBuilder.InsertData(
                 table: "Accounts",
-                columns: new[] { "Id", "AccountNumber", "AccountType", "KycTier", "LastActivityUtc" },
+                columns: new[] { "Id", "AccountNumber", "AccountType", "KycTier", "LastActivityUtc", "OwnerUserId" },
                 values: new object[,]
                 {
-                    { new Guid("11111111-1111-1111-1111-111111111111"), "0000000001", "Suspense", "Tier4", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { new Guid("22222222-2222-2222-2222-222222222222"), "0000000002", "TaxLiability", "Tier4", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { new Guid("33333333-3333-3333-3333-333333333333"), "0000000003", "SystemRevenue", "Tier4", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { new Guid("44444444-4444-4444-4444-444444444444"), "0000000004", "Settlement", "Tier4", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) },
-                    { new Guid("55555555-5555-5555-5555-555555555555"), "0000000005", "Reserve", "Tier4", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc) }
+                    { new Guid("11111111-1111-1111-1111-111111111111"), "0000000001", "Suspense", "Tier4", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), new Guid("00000000-0000-0000-0000-000000000001") },
+                    { new Guid("22222222-2222-2222-2222-222222222222"), "0000000002", "TaxLiability", "Tier4", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), new Guid("00000000-0000-0000-0000-000000000001") },
+                    { new Guid("33333333-3333-3333-3333-333333333333"), "0000000003", "SystemRevenue", "Tier4", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), new Guid("00000000-0000-0000-0000-000000000001") },
+                    { new Guid("44444444-4444-4444-4444-444444444444"), "0000000004", "Settlement", "Tier4", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), new Guid("00000000-0000-0000-0000-000000000001") },
+                    { new Guid("55555555-5555-5555-5555-555555555555"), "0000000005", "Reserve", "Tier4", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), new Guid("00000000-0000-0000-0000-000000000001") }
                 });
 
             migrationBuilder.CreateIndex(
