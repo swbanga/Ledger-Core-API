@@ -43,9 +43,9 @@ builder.Services.AddOpenApi(options =>
         document.Info.Title = "LedgerCore API";
         document.Info.Version = "v1.0";
         document.Info.Description = "Enterprise Financial Ledger Project.\n\n" +
-                                    "> **DevSecOps Notice:** This interactive intelligence layer (Scalar UI) is deliberately exposed in this cloud pilot for public testing and architectural evaluation by technical recruiters. In a live banking environment, this interactive footprint would be aggressively amputated or restricted behind an internal API Gateway and corporate VPN to neutralize the application's public attack surface.\n\n" +
+                                    "> **Development Notice:** This interactive intelligence layer (Scalar UI) is deliberately exposed in this cloud pilot for public testing and architectural evaluation by technical recruiters. In a live banking environment, this interactive footprint would be aggressively amputated or restricted behind an internal API Gateway and corporate VPN to neutralize the application's public attack surface.\n\n" +
                                     "**Engineered by Super Washington Banga | Backend and Cloud Systems Engineering**\n\n" +
-                                    "github.com/swbanga | linkedin.com/swbanga";
+                                    "github.com/swbanga | linkedin.com/in/swbanga";
         return Task.CompletedTask;
     });
 });
