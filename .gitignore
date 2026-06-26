@@ -35,3 +35,9 @@ devskim-report.sarif
 .DS_Store
 Thumbs.db
 .dockerignore
+
+# Terraform Secrets
+*.tfvars
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
