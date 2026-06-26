@@ -1,0 +1,44 @@
+name: Ledger-Core CI Security & Verification
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 1. Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: 2. Lock .NET 10 Execution Engine
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: 3. Inject Enterprise NuGet Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        # Creates a unique cryptographic hash based on your OS and project dependencies
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+
+    - name: 4. Restore Dependencies (Bypass Network if Cached)
+      run: dotnet restore
+
+    - name: 5. Execute Sterile Clean
+      # Clean to ensure zero artifact pollution
+      run: dotnet clean --configuration Release
+
+    - name: 6. Compile Release Architecture
+      # --no-restore forces the engine to trust the cache, saving execution time
+      run: dotnet build --configuration Release --no-restore
+
+    - name: 7. Execute Verification Matrix
+      # --no-build prevents a redundant compilation phase
+      run: dotnet test --configuration Release --no-build --verbosity normal
